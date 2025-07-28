@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,15 +31,21 @@ import {
   Award,
   Lightbulb,
   Upload,
+  GitBranch,
 } from "lucide-react";
 import { EstimationData, TeamMember } from "@/lib/types";
 import {
   PREDEFINED_FEATURES,
+  PREDEFINED_EPICS,
   generateAIEstimation,
   saveEstimationData,
 } from "@/lib/estimationData";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { jiraService, JiraIssue } from "@/lib/jiraService";
+import { JiraConfigDialog } from "./JiraConfigDialog";
+import { JiraImportDialog } from "./JiraImportDialog";
+import { JiraAutocomplete } from "./JiraAutocomplete";
 
 export default function EstimationForm() {
   const { toast } = useToast();
@@ -66,16 +72,97 @@ export default function EstimationForm() {
   >([]);
   const [isDragging, setIsDragging] = useState(false);
   const [tshirtSize, setTshirtSize] = useState<string>("");
+  const [showJiraConfig, setShowJiraConfig] = useState(false);
+  const [showJiraImport, setShowJiraImport] = useState(false);
+  const [isJiraConfigured, setIsJiraConfigured] = useState(false);
+  const [jiraEpics, setJiraEpics] = useState<JiraIssue[]>([]);
+  const [isLoadingEpics, setIsLoadingEpics] = useState(false);
+
+  useEffect(() => {
+    // Check if JIRA is configured
+    const configured = jiraService.isConfigured();
+    setIsJiraConfigured(configured);
+
+    // Load JIRA epics if configured
+    if (configured) {
+      loadJiraEpics();
+    }
+  }, []);
+
+  const loadJiraEpics = async () => {
+    setIsLoadingEpics(true);
+    try {
+      const epics = await jiraService.getEpics();
+      setJiraEpics(epics);
+    } catch (error) {
+      console.error("Failed to load JIRA epics:", error);
+    } finally {
+      setIsLoadingEpics(false);
+    }
+  };
 
   const addFeature = (feature: string) => {
-    if (feature && !selectedFeatures.includes(feature)) {
-      setSelectedFeatures([...selectedFeatures, feature]);
+    if (feature) {
+      // Check if the feature is an Epic
+      const featureIsEpic = isEpic(feature);
+
+      if (featureIsEpic) {
+        const existingEpic = getSelectedEpic();
+        // Remove any existing epics and add the new one
+        const filteredFeatures = selectedFeatures.filter((f) => !isEpic(f));
+        setSelectedFeatures([...filteredFeatures, feature]);
+
+        // Show toast notification about Epic replacement
+        if (existingEpic && existingEpic !== feature) {
+          toast({
+            title: "Epic Replaced",
+            description: `"${existingEpic}" has been replaced with "${feature}"`,
+          });
+        } else if (!existingEpic) {
+          toast({
+            title: "Epic Selected",
+            description: `Epic "${feature}" has been selected`,
+          });
+        }
+      } else {
+        // Only add if not already present
+        if (!selectedFeatures.includes(feature)) {
+          setSelectedFeatures([...selectedFeatures, feature]);
+        }
+      }
       setCustomFeature("");
     }
   };
 
   const removeFeature = (feature: string) => {
     setSelectedFeatures(selectedFeatures.filter((f) => f !== feature));
+  };
+
+  const handleJiraImport = (features: string[]) => {
+    const newFeatures = features.filter((f) => !selectedFeatures.includes(f));
+    setSelectedFeatures([...selectedFeatures, ...newFeatures]);
+  };
+
+  const handleJiraConfigured = () => {
+    setIsJiraConfigured(true);
+    loadJiraEpics();
+    toast({
+      title: "JIRA Connected",
+      description:
+        "JIRA integration configured successfully. Epics are now available in the dropdown.",
+    });
+  };
+
+  const isEpic = (item: string) => {
+    return (
+      /\[EPIC-\d+\]/.test(item) || // JIRA epic pattern
+      jiraEpics.some((epic) => jiraService.formatIssueAsFeature(epic) === item) || // JIRA epic match
+      PREDEFINED_EPICS.includes(item) // Predefined epic
+    );
+  };
+
+  const getSelectedEpic = () => {
+    return selectedFeatures.find((f) => isEpic(f));
   };
 
   const processFile = (
@@ -237,6 +324,8 @@ export default function EstimationForm() {
         dependencies,
         customNotes,
         tshirtSize,
+        uploadedFiles,
+        jiraEpics,
       });
       setAiEstimation(estimation);
       toast({
@@ -322,43 +411,225 @@ export default function EstimationForm() {
         </CardHeader>
         <CardContent className="form-section">
           <div className="space-y-6">
-            <div className="form-label flex items-center space-x-2">
-              <Lightbulb className="w-5 h-5 text-blue-600" />
-              <span>Project Features</span>
+            <div className="form-label flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Lightbulb className="w-5 h-5 text-blue-600" />
+                <span>Project Features</span>
+              </div>
+              {isJiraConfigured && (
+                <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-xs">
+                  <GitBranch className="w-3 h-3 mr-1" />
+                  JIRA Connected
+                </Badge>
+              )}
             </div>
-            <div className="flex space-x-4">
-              <Select onValueChange={addFeature}>
-                <SelectTrigger className="form-input flex-1">
-                  <SelectValue placeholder="Select predefined features" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_FEATURES.map((feature) => (
-                    <SelectItem key={feature} value={feature}>
-                      {feature}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Input
-                className="form-input"
-                placeholder="Enter custom feature"
-                value={customFeature}
-                onChange={(e) => setCustomFeature(e.target.value)}
-                onKeyPress={(e) =>
-                  e.key === "Enter" && addFeature(customFeature)
-                }
-              />
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  Select an Epic from the dropdown (selecting a new Epic will
+                  replace the current one)
+                </p>
+                <div className="flex space-x-4">
+                  <Select onValueChange={addFeature}>
+                    <SelectTrigger className="form-input flex-1">
+                      <SelectValue
+                        placeholder={
+                          isLoadingEpics
+                            ? "Loading epics..."
+                            : getSelectedEpic()
+                            ? getSelectedEpic()
+                            : "Select predefined epics, features, or JIRA epics"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                        Predefined Epics
+                      </div>
+                      {PREDEFINED_EPICS.map((epic) => (
+                        <SelectItem key={epic} value={epic}>
+                          <div className="flex items-center space-x-2">
+                            <Badge className="bg-purple-100 text-purple-700 text-xs">
+                              Epic
+                            </Badge>
+                            <span>{epic}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      <div className="my-2 border-t" />
+                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                        Predefined Features
+                      </div>
+                      {PREDEFINED_FEATURES.map((feature) => (
+                        <SelectItem key={feature} value={feature}>
+                          {feature}
+                        </SelectItem>
+                      ))}
+                      {jiraEpics.length > 0 && (
+                        <>
+                          <div className="my-2 border-t" />
+                          <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 flex items-center space-x-1">
+                            <GitBranch className="w-3 h-3" />
+                            <span>JIRA Epics</span>
+                          </div>
+                          {jiraEpics.map((epic) => (
+                            <SelectItem
+                              key={epic.key}
+                              value={jiraService.formatIssueAsFeature(epic)}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <Badge className="bg-purple-100 text-purple-700 text-xs">
+                                  Epic
+                                </Badge>
+                                <span className="truncate">
+                                  [{epic.key}] {epic.fields.summary}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 border-purple-300"
+                    onClick={() =>
+                      isJiraConfigured
+                        ? setShowJiraImport(true)
+                        : setShowJiraConfig(true)
+                    }
+                  >
+                    <GitBranch className="w-4 h-4 mr-2" />
+                    {isJiraConfigured ? "Bulk Import" : "Configure JIRA"}
+                  </Button>
+                </div>
+              </div>
 
-              <Button
-                type="button"
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={() => addFeature(customFeature)}
-                disabled={!customFeature}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  Add custom features or search JIRA tasks, bugs, and stories
+                </p>
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 mb-3">
+                  <div className="flex items-center space-x-2">
+                    <JiraAutocomplete
+                      value={customFeature}
+                      onChange={setCustomFeature}
+                      onSelect={(feature) => {
+                        addFeature(feature);
+                        setCustomFeature("");
+                      }}
+                      placeholder={
+                        isJiraConfigured
+                          ? "Enter custom feature or search JIRA tasks, bugs, stories..."
+                          : "Enter custom feature"
+                      }
+                      className="form-input"
+                    />
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 shadow-lg hover:shadow-xl transition-all duration-300"
+                      onClick={() => {
+                        if (customFeature.trim()) {
+                          addFeature(customFeature.trim());
+                          setCustomFeature("");
+                        }
+                      }}
+                      disabled={!customFeature.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {selectedFeatures.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="text-sm font-medium text-gray-700 mb-4">
+                      Selected Items ({selectedFeatures.length})
+                    </div>
+                    
+                    {/* Epics Section */}
+                    {selectedFeatures.some(feature => isEpic(feature)) && (
+                      <div className="mb-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Badge className="bg-purple-600 text-white text-xs font-semibold">
+                            Epics
+                          </Badge>
+                          <span className="text-xs text-gray-600">
+                            ({selectedFeatures.filter(feature => isEpic(feature)).length})
+                          </span>
+                        </div>
+                        <ul className="space-y-2">
+                          {selectedFeatures
+                            .filter(feature => isEpic(feature))
+                            .map((epic, index) => (
+                              <li
+                                key={`epic-${epic}-${index}`}
+                                className="flex items-center justify-between p-3 rounded border-2 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-300 hover:border-purple-400 shadow-sm transition-colors"
+                              >
+                                <div className="flex items-center flex-1 mr-2">
+                                  <span className="text-sm text-purple-800 font-medium">
+                                    {epic}
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                  onClick={() => removeFeature(epic)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Features Section */}
+                    {selectedFeatures.some(feature => !isEpic(feature)) && (
+                      <div>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Badge className="bg-blue-600 text-white text-xs font-semibold">
+                            Features
+                          </Badge>
+                          <span className="text-xs text-gray-600">
+                            ({selectedFeatures.filter(feature => !isEpic(feature)).length})
+                          </span>
+                        </div>
+                        <div className="max-h-32 overflow-y-auto">
+                          <ul className="space-y-2">
+                            {selectedFeatures
+                              .filter(feature => !isEpic(feature))
+                              .map((feature, index) => (
+                                <li
+                                  key={`feature-${feature}-${index}`}
+                                  className="flex items-center justify-between p-3 rounded border-2 bg-white border-gray-200 hover:border-blue-300 transition-colors"
+                                >
+                                  <div className="flex items-center flex-1 mr-2">
+                                    <span className="text-sm text-gray-700">
+                                      {feature}
+                                    </span>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                    onClick={() => removeFeature(feature)}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -482,24 +753,6 @@ export default function EstimationForm() {
                 )}
               </div>
             )}
-            <div className="flex flex-wrap gap-4">
-              {selectedFeatures.map((feature) => (
-                <Badge
-                  key={feature}
-                  className="feature-badge hover:bg-blue-200 transition-colors"
-                >
-                  <span>{feature}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 w-5 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-full"
-                    onClick={() => removeFeature(feature)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
           </div>
 
           <div className="section-divider"></div>
@@ -804,6 +1057,19 @@ export default function EstimationForm() {
           </CardContent>
         </Card>
       )}
+
+      {/* JIRA Dialogs */}
+      <JiraConfigDialog
+        open={showJiraConfig}
+        onOpenChange={setShowJiraConfig}
+        onConfigured={handleJiraConfigured}
+      />
+
+      <JiraImportDialog
+        open={showJiraImport}
+        onOpenChange={setShowJiraImport}
+        onImport={handleJiraImport}
+      />
     </div>
   );
 }

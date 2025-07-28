@@ -18,37 +18,84 @@ export const PREDEFINED_FEATURES = [
   'Search Functionality'
 ];
 
-export const generateAIEstimation = async (data: Partial<EstimationData>) => {
-  // Mock AI estimation logic
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-  
-  const baseStoryPoints = data.features?.length || 0;
-  const complexityMultiplier = data.teamMembers ? 
-    (data.teamMembers.developers + data.teamMembers.architects) / 5 : 1;
-  const totalStoryPoints = Math.round(baseStoryPoints * complexityMultiplier * 8);
-  
-  const estimatedSprints = Math.ceil(totalStoryPoints / (data.sprintVelocity || 20));
-  
-  const riskLevel = estimatedSprints > 10 ? 'High' : 
-                   estimatedSprints > 5 ? 'Medium' : 'Low';
-  
-  const recommendations = [
-    'Consider breaking down complex features into smaller user stories',
-    'Ensure proper test coverage for all features',
-    'Plan for regular stakeholder reviews',
-    'Consider potential blockers and dependencies early'
-  ];
-  
-  if (data.dependencies && data.dependencies.length > 0) {
-    recommendations.push('Pay special attention to external dependencies');
+export const PREDEFINED_EPICS = [
+  'User Management Epic',
+  'E-commerce Platform Epic',
+  'Analytics & Reporting Epic',
+  'Mobile Application Epic',
+  'Security & Compliance Epic',
+  'Payment Processing Epic',
+  'Content Management Epic',
+  'Integration Platform Epic'
+];
+
+export const generateAIEstimation = async (data: Partial<EstimationData & { 
+  uploadedFiles?: Array<{ name: string; features: string[] }>,
+  jiraEpics?: Array<{ key: string; fields: { summary: string } }>
+}>) => {
+  try {
+    // Helper function to detect epics (same logic as frontend)
+    const isEpic = (item: string) => {
+      return (
+        /\[EPIC-\d+\]/.test(item) || // JIRA epic pattern
+        (data.jiraEpics && data.jiraEpics.some((epic) => `[${epic.key}] ${epic.fields.summary}` === item)) || // JIRA epic match
+        PREDEFINED_EPICS.includes(item) // Predefined epic
+      );
+    };
+
+    // Separate epics and features from selected items
+    const selectedItems = data.features || [];
+    const epicsOnly = selectedItems.filter(item => isEpic(item));
+    const featuresOnly = selectedItems.filter(item => !isEpic(item));
+
+    const response = await fetch('/api/generate-estimation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        features: featuresOnly.reduce((acc, feature, index) => {
+          acc[`feature${index + 1}`] = feature;
+          return acc;
+        }, {} as { [key: string]: string }),
+        epics: epicsOnly.reduce((acc, epic, index) => {
+          acc[`epic${index + 1}`] = epic;
+          return acc;
+        }, {} as { [key: string]: string }),
+        t_shirt_sizing: data.tshirtSize || '',
+        old_reference_sheet: (data.uploadedFiles || []).map(file => ({
+          fileName: file.name,
+          features: file.features,
+          uploadedAt: new Date().toISOString()
+        })),
+        dependencies: data.dependencies || '',
+        sprint_configuration: {
+          duration: data.sprintSize || 2,
+          velocity: data.sprintVelocity || 20
+        },
+        team_composition: {
+          developers: data.teamMembers?.developers || 0,
+          qa: data.teamMembers?.qa || 0,
+          po: data.teamMembers?.po || 0,
+          ba: data.teamMembers?.ba || 0,
+          managers: data.teamMembers?.managers || 0,
+          delivery_managers: data.teamMembers?.deliveryManagers || 0,
+          architects: data.teamMembers?.architects || 0,
+        },
+        additional_notes: data.customNotes || ''
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Failed to generate AI estimation:', error);
+    throw new Error('Failed to generate AI estimation. Please try again.');
   }
-  
-  return {
-    totalStoryPoints,
-    estimatedSprints,
-    riskLevel: riskLevel as 'Low' | 'Medium' | 'High',
-    recommendations
-  };
 };
 
 export const saveEstimationData = (data: EstimationData) => {
