@@ -65,6 +65,7 @@ export default function EstimationForm() {
     { name: string; features: string[] }[]
   >([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [tshirtSize, setTshirtSize] = useState<string>("");
 
   const addFeature = (feature: string) => {
     if (feature && !selectedFeatures.includes(feature)) {
@@ -235,6 +236,7 @@ export default function EstimationForm() {
         sprintVelocity,
         dependencies,
         customNotes,
+        tshirtSize,
       });
       setAiEstimation(estimation);
       toast({
@@ -270,6 +272,7 @@ export default function EstimationForm() {
       sprintVelocity,
       dependencies,
       customNotes,
+      tshirtSize,
       aiEstimation,
       createdAt: new Date(),
     };
@@ -295,6 +298,7 @@ export default function EstimationForm() {
     setSprintVelocity(20);
     setDependencies("");
     setCustomNotes("");
+    setTshirtSize("");
     setAiEstimation(null);
     setUploadedFiles([]);
   };
@@ -355,6 +359,36 @@ export default function EstimationForm() {
               >
                 <Plus className="w-4 h-4" />
               </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="form-label flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <span>T-Shirt Sizing</span>
+              </div>
+              <Select value={tshirtSize} onValueChange={setTshirtSize}>
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="Select project size estimation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="XS">
+                    XS - Extra Small (1-2 weeks)
+                  </SelectItem>
+                  <SelectItem value="S">S - Small (2-4 weeks)</SelectItem>
+                  <SelectItem value="M">M - Medium (1-2 months)</SelectItem>
+                  <SelectItem value="L">L - Large (2-3 months)</SelectItem>
+                  <SelectItem value="XL">
+                    XL - Extra Large (3-6 months)
+                  </SelectItem>
+                  <SelectItem value="XXL">
+                    XXL - Extra Extra Large (6+ months)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-blue-600">
+                High-level estimation of the overall project complexity and
+                duration
+              </p>
             </div>
             <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg">
               <Switch
@@ -484,6 +518,8 @@ export default function EstimationForm() {
               rows={5}
             />
           </div>
+
+          <div className="section-divider"></div>
         </CardContent>
       </Card>
 

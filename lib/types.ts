@@ -16,6 +16,7 @@ export interface EstimationData {
   sprintVelocity: number;
   dependencies: string;
   customNotes: string;
+  tshirtSize?: string;
   aiEstimation?: {
     totalStoryPoints: number;
     estimatedSprints: number;
