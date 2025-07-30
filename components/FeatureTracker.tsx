@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Edit, Eye, BarChart3, Filter, Search, Plus } from 'lucide-react';
-import { dummyFeatures } from '@/lib/dummyData';
+// import { dummyFeatures } from '@/lib/dummyData';
 
 interface Feature {
   id: string;
@@ -30,7 +30,19 @@ interface Feature {
 }
 
 export default function FeatureTracker() {
-  const [features, setFeatures] = useState<Feature[]>(dummyFeatures);
+  // Load features from JSON and normalize status values
+  const loadFeatures = () => {
+    const timelineData = require("@/lib/featureTimelineData.json");
+    return timelineData.features.map((feature: any) => ({
+      ...feature,
+      // Map status values to match Feature Tracker expectations
+      status: feature.status === 'in-progress' ? 'progress' : 
+              feature.status === 'planned' ? 'new' : 
+              feature.status
+    }));
+  };
+
+  const [features, setFeatures] = useState<Feature[]>(loadFeatures());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -131,7 +143,7 @@ export default function FeatureTracker() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="new">Planned</SelectItem>
                   <SelectItem value="progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="blocked">Blocked</SelectItem>
@@ -154,7 +166,15 @@ export default function FeatureTracker() {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-blue-800">Actions</Label>
-              <Button variant="outline" className="w-full border-blue-200 text-blue-600 hover:bg-blue-50">
+              <Button 
+                variant="outline" 
+                className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setPriorityFilter('all');
+                }}
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 Clear Filters
               </Button>
@@ -302,7 +322,7 @@ export default function FeatureTracker() {
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="new">New</SelectItem>
+                                          <SelectItem value="new">Planned</SelectItem>
                                           <SelectItem value="progress">In Progress</SelectItem>
                                           <SelectItem value="completed">Completed</SelectItem>
                                           <SelectItem value="blocked">Blocked</SelectItem>

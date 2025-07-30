@@ -1,4 +1,38 @@
 {
+  "projectEstimation": {
+    "estimationId": "EST-2025-001",
+    "projectName": "Feature Estimation Platform",
+    "tshirtSize": "XL",
+    "totalProjectSP": 284,
+    "estimatedDuration": "12 months",
+    "riskLevel": "Medium",
+    "estimatedSprints": 12,
+    "sprintConfiguration": {
+      "sprintSize": 2,
+      "sprintVelocity": 25
+    },
+    "teamComposition": {
+      "developers": 4,
+      "qa": 2,
+      "po": 1,
+      "ba": 1,
+      "managers": 1,
+      "deliveryManagers": 1,
+      "architects": 1
+    },
+    "resourceAllocation": {
+      "developmentEffort": 75,
+      "testingEffort": 20,
+      "managementEffort": 5
+    },
+    "estimationMetadata": {
+      "estimationMethod": "Planning Poker + T-shirt Sizing",
+      "estimationDate": "2025-01-10",
+      "estimatedBy": "Product Team",
+      "validatedBy": "Tech Lead & Architect",
+      "lastUpdated": "2025-01-30"
+    }
+  },
   "features": [
     {
       "id": "FT-001",
@@ -24,7 +58,46 @@
       "quarters": ["Q1"],
       "dependencies": ["Database Setup"],
       "tags": ["Authentication", "Security"],
-      "deliverables": ["Login API", "Registration Flow", "Password Reset", "JWT Implementation"]
+      "deliverables": ["Login API", "Registration Flow", "Password Reset", "JWT Implementation"],
+      "estimation": {
+        "originalEstimate": 18,
+        "finalEstimate": 21,
+        "complexityScore": 7,
+        "uncertaintyLevel": "Low",
+        "bufferPercentage": 15,
+        "estimationAccuracy": 95,
+        "estimationDate": "2024-12-15",
+        "estimatedBy": "John Doe & Tech Team"
+      },
+      "businessContext": {
+        "businessValue": "High",
+        "userImpact": "Critical",
+        "revenueImpact": "High",
+        "strategicImportance": "High",
+        "customerSegment": ["Enterprise", "SMB", "Individual"]
+      },
+      "technicalContext": {
+        "technologyStack": ["Node.js", "JWT", "bcrypt", "PostgreSQL"],
+        "architecture": "Microservices",
+        "integrationPoints": ["User Database", "Email Service", "SMS Service"],
+        "technicalRisks": ["OAuth Integration", "Security Compliance"],
+        "performanceRequirements": {
+          "responseTime": "< 200ms",
+          "throughput": "500 req/sec",
+          "availability": "99.9%"
+        }
+      },
+      "jiraIntegration": {
+        "jiraKey": "AUTH-123",
+        "epicKey": "EPIC-001",
+        "labels": ["backend", "security", "api"],
+        "components": ["Authentication", "Security"],
+        "timeTracking": {
+          "originalEstimate": "3w",
+          "remainingEstimate": "0h",
+          "timeSpent": "3w 2d"
+        }
+      }
     },
     {
       "id": "FT-002",
