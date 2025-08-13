@@ -210,7 +210,7 @@ export default function Dashboard() {
                         </div>
                         <div
                           id="left-scroll"
-                          className="flex-1 overflow-y-auto"
+                          className="flex-1 overflow-y-auto pb-20"
                           onScroll={handleScroll}
                         >
                           {features.map((feature: any, index: number) => {
@@ -473,7 +473,7 @@ export default function Dashboard() {
                         {/* Timeline Grid - Scrollable content */}
                         <div
                           id="right-scroll"
-                          className="flex-1 overflow-y-auto"
+                          className="flex-1 overflow-y-auto pb-20"
                           onScroll={handleScroll}
                         >
                           {features.map((feature: any, index: number) => {
@@ -727,7 +727,7 @@ export default function Dashboard() {
                         </div>
                         <div
                           id="teams-left-scroll"
-                          className="flex-1 overflow-y-auto"
+                          className="flex-1 overflow-y-auto pb-20"
                           onScroll={handleScroll}
                         >
                           {teams.map((teamName) => {
@@ -874,7 +874,7 @@ export default function Dashboard() {
                         {/* Teams Timeline Grid - Scrollable content */}
                         <div
                           id="teams-right-scroll"
-                          className="flex-1 overflow-y-auto"
+                          className="flex-1 overflow-y-auto pb-20"
                           onScroll={handleScroll}
                         >
                           {teams.map((teamName) => {
