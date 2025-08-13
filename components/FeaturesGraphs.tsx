@@ -46,8 +46,8 @@ export default function FeaturesGraphs() {
 
   // Get pie chart data for a feature
   const getPieData = (feature: any) => {
-    const totalPlanned = Object.values(feature.quarterlyConsumption).reduce((sum: number, q: any) => sum + q.planned, 0);
-    const totalConsumed = Object.values(feature.quarterlyConsumption).reduce((sum: number, q: any) => sum + q.consumed, 0);
+    const totalPlanned = Object.values(feature.quarterlyConsumption as Record<string, any>).reduce((sum: number, q: any) => sum + (q?.planned || 0), 0);
+    const totalConsumed = Object.values(feature.quarterlyConsumption as Record<string, any>).reduce((sum: number, q: any) => sum + (q?.consumed || 0), 0);
     const totalRemaining = totalPlanned - totalConsumed;
 
     return [

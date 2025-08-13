@@ -157,8 +157,8 @@ export default function ResourceAllocation() {
     count: count as number,
     percentage: Math.round(
       ((count as number) /
-        Object.values(projectEstimation.teamComposition).reduce(
-          (a, b) => a + b,
+        Object.values(projectEstimation.teamComposition as Record<string, any>).reduce(
+          (a: number, b: any) => a + (b || 0),
           0
         )) *
         100
@@ -208,8 +208,8 @@ export default function ResourceAllocation() {
               <p className="text-sm text-blue-600 font-medium">Total Team</p>
             </div>
             <p className="text-2xl font-bold text-blue-700">
-              {Object.values(projectEstimation.teamComposition).reduce(
-                (a, b) => a + b,
+              {Object.values(projectEstimation.teamComposition as Record<string, any>).reduce(
+                (a: number, b: any) => a + (b || 0),
                 0
               )}
             </p>

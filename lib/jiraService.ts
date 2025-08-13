@@ -72,13 +72,10 @@ class JiraService {
     }
 
     try {
-      const response = await fetch('/api/jira/test', {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'X-Jira-Domain': this.config.domain
-        }
-      });
-      return response.ok;
+      // For static export, API routes are not available
+      // This would need a server to proxy JIRA requests
+      console.warn('JIRA integration requires a server. API routes are not available in static export.');
+      return false;
     } catch (error) {
       console.error('JIRA connection test failed:', error);
       return false;
@@ -90,18 +87,9 @@ class JiraService {
       throw new Error('JIRA not configured');
     }
 
-    const response = await fetch('/api/jira/projects', {
-      headers: {
-        'Authorization': this.getAuthHeader(),
-        'X-Jira-Domain': this.config.domain
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch JIRA projects');
-    }
-
-    return response.json();
+    // For static export, API routes are not available
+    console.warn('JIRA integration requires a server. API routes are not available in static export.');
+    return [];
   }
 
   async searchIssues(jql: string): Promise<JiraIssue[]> {
@@ -109,36 +97,9 @@ class JiraService {
       throw new Error('JIRA not configured');
     }
 
-    const response = await fetch('/api/jira/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': this.getAuthHeader(),
-        'X-Jira-Domain': this.config.domain,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        jql,
-        maxResults: 100,
-        fields: [
-          'summary',
-          'description',
-          'status',
-          'issuetype',
-          'priority',
-          'assignee',
-          'customfield_10016', // Common story points field
-          'labels',
-          'components'
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to search JIRA issues');
-    }
-
-    const data = await response.json();
-    return data.issues || [];
+    // For static export, API routes are not available
+    console.warn('JIRA integration requires a server. API routes are not available in static export.');
+    return [];
   }
 
   async getIssuesByProject(projectKey: string, issueTypes?: string[]): Promise<JiraIssue[]> {

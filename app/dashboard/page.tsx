@@ -8,7 +8,6 @@ import EstimationAccuracy from "@/components/EstimationAccuracy";
 import ResourceAllocation from "@/components/ResourceAllocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
@@ -18,9 +17,7 @@ import {
 // Remove unused imports - now using featureTimelineData.json only
 // import { EstimationData, getEstimationData } from "@/lib/estimationData";
 // import { dummyFeatures, dummyProjects } from "@/lib/dummyData";
-import {
-  Calendar,
-} from "lucide-react";
+import { Calendar } from "lucide-react";
 
 export default function Dashboard() {
   // All dashboard sections now use featureTimelineData.json
@@ -116,11 +113,11 @@ export default function Dashboard() {
                       {features.map((feature: any, index: number) => {
                         // Calculate totals from quarterly data
                         const totalPlanned = Object.values(
-                          feature.quarterlyConsumption
-                        ).reduce((sum: number, q: any) => sum + q.planned, 0);
+                          feature.quarterlyConsumption as Record<string, any>
+                        ).reduce((sum: number, q: any) => sum + (q?.planned || 0), 0);
                         const totalConsumed = Object.values(
-                          feature.quarterlyConsumption
-                        ).reduce((sum: number, q: any) => sum + q.consumed, 0);
+                          feature.quarterlyConsumption as Record<string, any>
+                        ).reduce((sum: number, q: any) => sum + (q?.consumed || 0), 0);
 
                         // Calculate quarter-specific dates for left display
                         const featureStart = new Date(feature.startDate);
@@ -237,8 +234,8 @@ export default function Dashboard() {
                         {features.reduce(
                           (sum: number, f: any) =>
                             sum +
-                            Object.values(f.quarterlyConsumption).reduce(
-                              (s: number, q: any) => s + q.consumed,
+                            Object.values(f.quarterlyConsumption as Record<string, any>).reduce(
+                              (s: number, q: any) => s + (q?.consumed || 0),
                               0
                             ),
                           0
@@ -247,8 +244,8 @@ export default function Dashboard() {
                         {features.reduce(
                           (sum: number, f: any) =>
                             sum +
-                            Object.values(f.quarterlyConsumption).reduce(
-                              (s: number, q: any) => s + q.planned,
+                            Object.values(f.quarterlyConsumption as Record<string, any>).reduce(
+                              (s: number, q: any) => s + (q?.planned || 0),
                               0
                             ),
                           0
@@ -302,7 +299,7 @@ export default function Dashboard() {
                             {/* Quarter-based bars */}
                             <div className="absolute inset-0 flex">
                               {["Q1", "Q2", "Q3", "Q4"].map(
-                                (quarter, qIndex) => {
+                                (quarter: any, qIndex) => {
                                   const qData =
                                     feature.quarterlyConsumption[quarter];
                                   if (!qData || qData.planned === 0)
@@ -548,7 +545,6 @@ export default function Dashboard() {
         <div className="my-5">
           <FeatureTracker />
         </div>
-
       </main>
     </div>
   );

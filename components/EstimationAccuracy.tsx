@@ -226,9 +226,13 @@ export default function EstimationAccuracy() {
                   <Bar 
                     dataKey="accuracy" 
                     name="Accuracy"
-                    fill={(entry: any) => getAccuracyColor(entry.accuracy)}
+                    fill="#8884d8"
                     radius={[4, 4, 0, 0]}
-                  />
+                  >
+                    {accuracyData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={getAccuracyColor(entry.accuracy)} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -289,9 +293,13 @@ export default function EstimationAccuracy() {
                   <Bar 
                     dataKey="variance" 
                     name="Variance"
-                    fill={(entry: any) => getVarianceColor(entry.variance)}
+                    fill="#8884d8"
                     radius={[4, 4, 0, 0]}
-                  />
+                  >
+                    {accuracyData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={getVarianceColor(entry.variance)} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
