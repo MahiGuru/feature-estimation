@@ -451,22 +451,46 @@ export default function Dashboard() {
 
                       {/* Right Section - Timeline Grid */}
                       <div className="flex-1 bg-white flex flex-col">
-                        {/* Quarter Headers */}
+                        {/* Quarter Headers with Totals */}
                         <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
                           <div className="flex-1 flex">
-                            {["Q1", "Q2", "Q3", "Q4"].map((quarter, index) => (
-                              <div
-                                key={quarter}
-                                className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
-                              >
-                                <div className="font-bold text-lg text-blue-900">
-                                  {quarter}
+                            {["Q1", "Q2", "Q3", "Q4"].map((quarter, index) => {
+                              // Calculate quarterly totals for this quarter
+                              const quarterTotal = features.reduce(
+                                (sum: number, feature: any) => {
+                                  const qData =
+                                    feature.quarterlyConsumption[quarter];
+                                  return sum + (qData ? qData.planned : 0);
+                                },
+                                0
+                              );
+
+                              const quarterConsumed = features.reduce(
+                                (sum: number, feature: any) => {
+                                  const qData =
+                                    feature.quarterlyConsumption[quarter];
+                                  return sum + (qData ? qData.consumed : 0);
+                                },
+                                0
+                              );
+
+                              return (
+                                <div
+                                  key={quarter}
+                                  className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
+                                >
+                                  <div className="font-bold text-lg text-blue-900">
+                                    {quarter}
+                                  </div>
+                                  <div className="text-xs text-blue-600">
+                                    {year}
+                                  </div>
+                                  <div className="text-xs font-bold text-blue-900 mt-1">
+                                    {quarterConsumed}/{quarterTotal} SP
+                                  </div>
                                 </div>
-                                <div className="text-xs text-blue-600">
-                                  {year}
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -668,46 +692,6 @@ export default function Dashboard() {
                             );
                           })}
                         </div>
-
-                        {/* Summary Row */}
-                        <div className="h-16 border-t-2 border-blue-300 bg-blue-100 flex-shrink-0">
-                          <div className="flex h-full">
-                            {["Q1", "Q2", "Q3", "Q4"].map((quarter) => {
-                              // Calculate quarterly totals
-                              const quarterTotal = features.reduce(
-                                (sum: number, feature: any) => {
-                                  const qData =
-                                    feature.quarterlyConsumption[quarter];
-                                  return sum + (qData ? qData.planned : 0);
-                                },
-                                0
-                              );
-
-                              const quarterConsumed = features.reduce(
-                                (sum: number, feature: any) => {
-                                  const qData =
-                                    feature.quarterlyConsumption[quarter];
-                                  return sum + (qData ? qData.consumed : 0);
-                                },
-                                0
-                              );
-
-                              return (
-                                <div
-                                  key={quarter}
-                                  className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
-                                >
-                                  <div className="text-xs text-blue-600 font-medium">
-                                    Total
-                                  </div>
-                                  <div className="text-sm font-bold text-blue-900">
-                                    {quarterConsumed}/{quarterTotal} SP
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </TabsContent>
@@ -854,27 +838,49 @@ export default function Dashboard() {
 
                       {/* Right Section - Timeline Grid (same as Features tab) */}
                       <div className="flex-1 bg-white flex flex-col">
-                        {/* Quarter Headers */}
+                        {/* Quarter Headers with Totals */}
                         <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
-                          {["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
-                            <div
-                              key={quarter}
-                              className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
-                            >
-                              <div className="font-bold text-lg text-blue-900">
-                                {quarter}
+                          {["Q1", "Q2", "Q3", "Q4"].map((quarter) => {
+                            // Calculate quarterly totals across all teams
+                            const quarterTotal = Object.values(teamGroups)
+                              .flat()
+                              .reduce((sum: number, feature: any) => {
+                                const qData =
+                                  feature.quarterlyConsumption[quarter];
+                                return sum + (qData ? qData.planned : 0);
+                              }, 0);
+
+                            const quarterConsumed = Object.values(teamGroups)
+                              .flat()
+                              .reduce((sum: number, feature: any) => {
+                                const qData =
+                                  feature.quarterlyConsumption[quarter];
+                                return sum + (qData ? qData.consumed : 0);
+                              }, 0);
+
+                            return (
+                              <div
+                                key={quarter}
+                                className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
+                              >
+                                <div className="font-bold text-lg text-blue-900">
+                                  {quarter}
+                                </div>
+                                <div className="text-xs text-blue-600">
+                                  {year}
+                                </div>
+                                <div className="text-xs font-bold text-blue-900 mt-1">
+                                  {quarterConsumed}/{quarterTotal} SP
+                                </div>
                               </div>
-                              <div className="text-xs text-blue-600">
-                                {year}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         {/* Teams Timeline Grid - Scrollable content */}
                         <div
                           id="teams-right-scroll"
-                          className="flex-1 overflow-y-auto pb-20"
+                          className="flex-1 overflow-y-auto pb-1"
                           onScroll={handleScroll}
                         >
                           {teams.map((teamName) => {
@@ -1022,31 +1028,6 @@ export default function Dashboard() {
                               </div>
                             );
                           })}
-                        </div>
-
-                        {/* Summary Row */}
-                        <div className="h-16 border-t-2 border-blue-300 bg-blue-100 flex-shrink-0">
-                          <div className="flex h-full">
-                            {["Q1", "Q2", "Q3", "Q4"].map((quarter) => {
-                              // Calculate quarterly totals across all teams
-                              const quarterTotal = Object.values(teamGroups)
-                                .flat()
-                                .reduce((sum: number, feature: any) => {
-                                  const qData =
-                                    feature.quarterlyConsumption[quarter];
-                                  return sum + (qData ? qData.planned : 0);
-                                }, 0);
-
-                              return (
-                                <div
-                                  key={quarter}
-                                  className="flex-1 flex items-center justify-center text-blue-900 font-bold border-r border-blue-300 last:border-r-0"
-                                >
-                                  {quarterTotal} SP
-                                </div>
-                              );
-                            })}
-                          </div>
                         </div>
                       </div>
                     </div>

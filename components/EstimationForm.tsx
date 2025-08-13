@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Loader2,
   Plus,
@@ -32,8 +33,9 @@ import {
   Lightbulb,
   Upload,
   GitBranch,
+  Info,
 } from "lucide-react";
-import { EstimationData, TeamMember } from "@/lib/types";
+import { EstimationData, TeamMember, FeatureItem } from "@/lib/types";
 import {
   PREDEFINED_FEATURES,
   PREDEFINED_EPICS,
@@ -49,8 +51,9 @@ import { JiraAutocomplete } from "./JiraAutocomplete";
 
 export default function EstimationForm() {
   const { toast } = useToast();
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([]);
   const [customFeature, setCustomFeature] = useState("");
+  const [customFeatureDescription, setCustomFeatureDescription] = useState("");
   const [sprintSize, setSprintSize] = useState<number>(2);
   const [teamMembers, setTeamMembers] = useState<TeamMember>({
     developers: 0,
@@ -101,16 +104,17 @@ export default function EstimationForm() {
     }
   };
 
-  const addFeature = (feature: string) => {
+  const addFeature = (feature: string, description?: string) => {
     if (feature) {
       // Check if the feature is an Epic
       const featureIsEpic = isEpic(feature);
+      const newFeatureObj = { feature, description };
 
       if (featureIsEpic) {
         const existingEpic = getSelectedEpic();
         // Remove any existing epics and add the new one
-        const filteredFeatures = selectedFeatures.filter((f) => !isEpic(f));
-        setSelectedFeatures([...filteredFeatures, feature]);
+        const filteredFeatures = selectedFeatures.filter((f) => !isEpic(f.feature));
+        setSelectedFeatures([...filteredFeatures, newFeatureObj]);
 
         // Show toast notification about Epic replacement
         if (existingEpic && existingEpic !== feature) {
@@ -126,8 +130,8 @@ export default function EstimationForm() {
         }
       } else {
         // Only add if not already present
-        if (!selectedFeatures.includes(feature)) {
-          setSelectedFeatures([...selectedFeatures, feature]);
+        if (!selectedFeatures.some(f => f.feature === feature)) {
+          setSelectedFeatures([...selectedFeatures, newFeatureObj]);
         }
       }
       setCustomFeature("");
@@ -135,12 +139,14 @@ export default function EstimationForm() {
   };
 
   const removeFeature = (feature: string) => {
-    setSelectedFeatures(selectedFeatures.filter((f) => f !== feature));
+    setSelectedFeatures(selectedFeatures.filter((f) => f.feature !== feature));
   };
 
   const handleJiraImport = (features: string[]) => {
-    const newFeatures = features.filter((f) => !selectedFeatures.includes(f));
-    setSelectedFeatures([...selectedFeatures, ...newFeatures]);
+    const newFeatureObjs = features
+      .filter((f) => !selectedFeatures.some(selected => selected.feature === f))
+      .map(f => ({ feature: f }));
+    setSelectedFeatures([...selectedFeatures, ...newFeatureObjs]);
   };
 
   const handleJiraConfigured = () => {
@@ -162,7 +168,8 @@ export default function EstimationForm() {
   };
 
   const getSelectedEpic = () => {
-    return selectedFeatures.find((f) => isEpic(f));
+    const epic = selectedFeatures.find((f) => isEpic(f.feature));
+    return epic?.feature || null;
   };
 
   const processFile = (
@@ -188,7 +195,7 @@ export default function EstimationForm() {
 
         // Get unique new features
         const newFeatures = uploadedFeatures.filter(
-          (f) => f && !selectedFeatures.includes(f)
+          (f) => f && !selectedFeatures.some(selected => selected.feature === f)
         );
 
         onProcessed(newFeatures, file.name);
@@ -212,7 +219,8 @@ export default function EstimationForm() {
     Array.from(files).forEach((file) => {
       processFile(file, (newFeatures, fileName) => {
         if (newFeatures.length > 0) {
-          setSelectedFeatures((prev) => [...prev, ...newFeatures]);
+          const newFeatureObjects = newFeatures.map(f => ({ feature: f }));
+          setSelectedFeatures((prev) => [...prev, ...newFeatureObjects]);
           setUploadedFiles((prev) => [
             ...prev,
             { name: fileName, features: newFeatures },
@@ -270,7 +278,8 @@ export default function EstimationForm() {
     // Then process new file
     processFile(file, (newFeatures, fileName) => {
       if (newFeatures.length > 0) {
-        setSelectedFeatures((prev) => [...prev, ...newFeatures]);
+        const newFeatureObjects = newFeatures.map(f => ({ feature: f }));
+        setSelectedFeatures((prev) => [...prev, ...newFeatureObjects]);
         setUploadedFiles((prev) => {
           const newList = [...prev];
           newList.splice(index, 0, { name: fileName, features: newFeatures });
@@ -292,7 +301,7 @@ export default function EstimationForm() {
   const removeUploadedFile = (index: number) => {
     const file = uploadedFiles[index];
     setSelectedFeatures((prev) =>
-      prev.filter((f) => !file.features.includes(f))
+      prev.filter((f) => !file.features.includes(f.feature))
     );
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -374,6 +383,8 @@ export default function EstimationForm() {
 
     // Reset form
     setSelectedFeatures([]);
+    setCustomFeature("");
+    setCustomFeatureDescription("");
     setSprintSize(2);
     setTeamMembers({
       developers: 0,
@@ -512,35 +523,52 @@ export default function EstimationForm() {
                   Add custom features or search JIRA tasks, bugs, and stories
                 </p>
                 <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 mb-3">
-                  <div className="flex items-center space-x-2">
-                    <JiraAutocomplete
-                      value={customFeature}
-                      onChange={setCustomFeature}
-                      onSelect={(feature) => {
-                        addFeature(feature);
-                        setCustomFeature("");
-                      }}
-                      placeholder={
-                        isJiraConfigured
-                          ? "Enter custom feature or search JIRA tasks, bugs, stories..."
-                          : "Enter custom feature"
-                      }
-                      className="form-input"
-                    />
-                    <Button
-                      type="button"
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 shadow-lg hover:shadow-xl transition-all duration-300"
-                      onClick={() => {
-                        if (customFeature.trim()) {
-                          addFeature(customFeature.trim());
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <JiraAutocomplete
+                        value={customFeature}
+                        onChange={setCustomFeature}
+                        onSelect={(feature) => {
+                          addFeature(feature);
                           setCustomFeature("");
+                        }}
+                        placeholder={
+                          isJiraConfigured
+                            ? "Enter custom feature or search JIRA tasks, bugs, stories..."
+                            : "Enter custom feature name"
                         }
-                      }}
-                      disabled={!customFeature.trim()}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add
-                    </Button>
+                        className="form-input"
+                      />
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 shadow-lg hover:shadow-xl transition-all duration-300"
+                        onClick={() => {
+                          if (customFeature.trim()) {
+                            addFeature(customFeature.trim(), customFeatureDescription.trim() || undefined);
+                            setCustomFeature("");
+                            setCustomFeatureDescription("");
+                          }
+                        }}
+                        disabled={!customFeature.trim()}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Custom Feature
+                      </Button>
+                    </div>
+                    {customFeature.trim() && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          Feature Description (Optional)
+                        </Label>
+                        <Textarea
+                          value={customFeatureDescription}
+                          onChange={(e) => setCustomFeatureDescription(e.target.value)}
+                          placeholder="Enter a detailed description of the custom feature..."
+                          className="form-input min-h-[80px] resize-none"
+                          rows={3}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -551,34 +579,53 @@ export default function EstimationForm() {
                     </div>
                     
                     {/* Epics Section */}
-                    {selectedFeatures.some(feature => isEpic(feature)) && (
+                    {selectedFeatures.some(f => isEpic(f.feature)) && (
                       <div className="mb-4">
                         <div className="flex items-center space-x-2 mb-2">
                           <Badge className="bg-purple-600 text-white text-xs font-semibold">
                             Epics
                           </Badge>
                           <span className="text-xs text-gray-600">
-                            ({selectedFeatures.filter(feature => isEpic(feature)).length})
+                            ({selectedFeatures.filter(f => isEpic(f.feature)).length})
                           </span>
                         </div>
                         <ul className="space-y-2">
                           {selectedFeatures
-                            .filter(feature => isEpic(feature))
+                            .filter(f => isEpic(f.feature))
                             .map((epic, index) => (
                               <li
-                                key={`epic-${epic}-${index}`}
+                                key={`epic-${epic.feature}-${index}`}
                                 className="flex items-center justify-between p-3 rounded border-2 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-300 hover:border-purple-400 shadow-sm transition-colors"
                               >
                                 <div className="flex items-center flex-1 mr-2">
                                   <span className="text-sm text-purple-800 font-medium">
-                                    {epic}
+                                    {epic.feature}
                                   </span>
+                                  {epic.description && (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-5 w-5 p-0 ml-2 text-purple-600 hover:text-purple-800"
+                                        >
+                                          <Info className="w-3 h-3" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-80">
+                                        <div className="space-y-2">
+                                          <h4 className="font-semibold text-sm">{epic.feature}</h4>
+                                          <p className="text-sm text-gray-600">{epic.description}</p>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                  )}
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                  onClick={() => removeFeature(epic)}
+                                  onClick={() => removeFeature(epic.feature)}
                                 >
                                   <X className="w-4 h-4" />
                                 </Button>
@@ -589,35 +636,54 @@ export default function EstimationForm() {
                     )}
 
                     {/* Features Section */}
-                    {selectedFeatures.some(feature => !isEpic(feature)) && (
+                    {selectedFeatures.some(f => !isEpic(f.feature)) && (
                       <div>
                         <div className="flex items-center space-x-2 mb-2">
                           <Badge className="bg-blue-600 text-white text-xs font-semibold">
                             Features
                           </Badge>
                           <span className="text-xs text-gray-600">
-                            ({selectedFeatures.filter(feature => !isEpic(feature)).length})
+                            ({selectedFeatures.filter(f => !isEpic(f.feature)).length})
                           </span>
                         </div>
                         <div className="max-h-32 overflow-y-auto">
                           <ul className="space-y-2">
                             {selectedFeatures
-                              .filter(feature => !isEpic(feature))
-                              .map((feature, index) => (
+                              .filter(f => !isEpic(f.feature))
+                              .map((featureObj, index) => (
                                 <li
-                                  key={`feature-${feature}-${index}`}
+                                  key={`feature-${featureObj.feature}-${index}`}
                                   className="flex items-center justify-between p-3 rounded border-2 bg-white border-gray-200 hover:border-blue-300 transition-colors"
                                 >
                                   <div className="flex items-center flex-1 mr-2">
                                     <span className="text-sm text-gray-700">
-                                      {feature}
+                                      {featureObj.feature}
                                     </span>
+                                    {featureObj.description && (
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 p-0 ml-2 text-blue-600 hover:text-blue-800"
+                                          >
+                                            <Info className="w-3 h-3" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                          <div className="space-y-2">
+                                            <h4 className="font-semibold text-sm">{featureObj.feature}</h4>
+                                            <p className="text-sm text-gray-600">{featureObj.description}</p>
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
+                                    )}
                                   </div>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                    onClick={() => removeFeature(feature)}
+                                    onClick={() => removeFeature(featureObj.feature)}
                                   >
                                     <X className="w-4 h-4" />
                                   </Button>

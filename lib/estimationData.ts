@@ -45,8 +45,8 @@ export const generateAIEstimation = async (data: Partial<EstimationData & {
 
     // Separate epics and features from selected items
     const selectedItems = data.features || [];
-    const epicsOnly = selectedItems.filter(item => isEpic(item));
-    const featuresOnly = selectedItems.filter(item => !isEpic(item));
+    const epicsOnly = selectedItems.filter(item => isEpic(item.feature));
+    const featuresOnly = selectedItems.filter(item => !isEpic(item.feature));
 
     const response = await fetch('/api/generate-estimation', {
       method: 'POST',
@@ -54,14 +54,14 @@ export const generateAIEstimation = async (data: Partial<EstimationData & {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        features: featuresOnly.reduce((acc, feature, index) => {
-          acc[`feature${index + 1}`] = feature;
-          return acc;
-        }, {} as { [key: string]: string }),
-        epics: epicsOnly.reduce((acc, epic, index) => {
-          acc[`epic${index + 1}`] = epic;
-          return acc;
-        }, {} as { [key: string]: string }),
+        features: featuresOnly.map(featureObj => ({
+          feature: featureObj.feature,
+          description: featureObj.description || ''
+        })),
+        epics: epicsOnly.map(epicObj => ({
+          feature: epicObj.feature,
+          description: epicObj.description || ''
+        })),
         t_shirt_sizing: data.tshirtSize || '',
         old_reference_sheet: (data.uploadedFiles || []).map(file => ({
           fileName: file.name,

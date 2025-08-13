@@ -8,9 +8,14 @@ export interface TeamMember {
   architects: number;
 }
 
+export interface FeatureItem {
+  feature: string;
+  description?: string;
+}
+
 export interface EstimationData {
   id: string;
-  features: string[];
+  features: FeatureItem[];
   sprintSize: number;
   teamMembers: TeamMember;
   sprintVelocity: number;
