@@ -51,6 +51,9 @@ export default function Dashboard() {
 
   // State for active tab
   const [activeTab, setActiveTab] = useState("features");
+  
+  // State for API response
+  const [apiResponse, setApiResponse] = useState<any>(null);
 
   const updateFeatureAssignment = (
     featureId: string,
@@ -81,10 +84,57 @@ export default function Dashboard() {
     setFeatureAssignments(initialAssignments);
   }, []);
 
+  // Load API response from localStorage
+  useEffect(() => {
+    const savedApiResponse = localStorage.getItem('apiResponse');
+    
+    if (savedApiResponse) {
+      try {
+        setApiResponse(JSON.parse(savedApiResponse));
+      } catch (error) {
+        console.error('Error parsing API response:', error);
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <Navigation />
       <main className="container mx-auto px-6 py-12">
+        {/* API Response Display */}
+        {apiResponse && (
+          <Card className="bg-white border border-green-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-8 overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </div>
+                </div>
+                <span className="text-green-900">Prediction Response</span>
+                <div className="ml-auto">
+                  <button
+                    onClick={() => {
+                      setApiResponse(null);
+                      localStorage.removeItem('apiResponse');
+                    }}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
+                <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {JSON.stringify(apiResponse, null, 2)}
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Feature Tracking Calendar */}
         <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-12 overflow-hidden">
           <CardHeader>

@@ -15,7 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Loader2,
   Plus,
@@ -27,21 +31,14 @@ import {
   Zap,
   FileText,
   Settings,
-  Star,
   TrendingUp,
-  Award,
   Lightbulb,
   Upload,
   GitBranch,
   Info,
 } from "lucide-react";
-import { EstimationData, TeamMember, FeatureItem } from "@/lib/types";
-import {
-  PREDEFINED_FEATURES,
-  PREDEFINED_EPICS,
-  generateAIEstimation,
-  saveEstimationData,
-} from "@/lib/estimationData";
+import { TeamMember, FeatureItem } from "@/lib/types";
+import { PREDEFINED_EPICS, PREDEFINED_FEATURES } from "@/lib/estimationData";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { jiraService, JiraIssue } from "@/lib/jiraService";
@@ -51,35 +48,59 @@ import { JiraAutocomplete } from "./JiraAutocomplete";
 
 export default function EstimationForm() {
   const { toast } = useToast();
-  const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([
+    { name: "MSTeams SSO", description: "SSO description comes here...." },
+    {
+      name: "JAKARTHA migration",
+      description: "Jakartha description comes here....",
+    },
+  ]);
   const [customFeature, setCustomFeature] = useState("");
   const [customFeatureDescription, setCustomFeatureDescription] = useState("");
   const [sprintSize, setSprintSize] = useState<number>(2);
   const [teamMembers, setTeamMembers] = useState<TeamMember>({
-    developers: 0,
-    qa: 0,
-    po: 0,
-    ba: 0,
-    managers: 0,
-    deliveryManagers: 0,
-    architects: 0,
+    developers: 5,
+    qa: 2,
+    po: 1,
+    ba: 1,
+    managers: 1,
+    deliveryManagers: 2,
+    architects: 1,
   });
   const [sprintVelocity, setSprintVelocity] = useState<number>(20);
-  const [dependencies, setDependencies] = useState("");
-  const [customNotes, setCustomNotes] = useState("");
-  const [aiEstimation, setAiEstimation] = useState<any>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [dependencies, setDependencies] = useState(
+    "Dependencies of stories and extttt"
+  );
+  const [customNotes, setCustomNotes] = useState("notes description hrere");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<
-    { name: string; features: string[] }[]
+    { name: string; features: string[]; file?: File }[]
   >([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [tshirtSize, setTshirtSize] = useState<string>("");
+  const [tshirtSize, setTshirtSize] = useState<string>("XL");
   const [showJiraConfig, setShowJiraConfig] = useState(false);
   const [showJiraImport, setShowJiraImport] = useState(false);
   const [isJiraConfigured, setIsJiraConfigured] = useState(false);
   const [jiraEpics, setJiraEpics] = useState<JiraIssue[]>([]);
   const [isLoadingEpics, setIsLoadingEpics] = useState(false);
+  const [selectValue, setSelectValue] = useState<string>("");
+  const [apiResponse, setApiResponse] = useState<any>(null);
+
+  // Function to completely reset form data
+  const resetFormData = () => {
+    setSelectedFeatures([]);
+    setCustomFeature("");
+    setCustomFeatureDescription("");
+    setUploadedFiles([]);
+    setSelectValue("");
+    setApiResponse(null);
+    localStorage.removeItem("apiResponse");
+    toast({
+      title: "Form Reset",
+      description: "All form data and uploaded files have been cleared",
+    });
+  };
 
   useEffect(() => {
     // Check if JIRA is configured
@@ -105,47 +126,89 @@ export default function EstimationForm() {
   };
 
   const addFeature = (feature: string, description?: string) => {
-    if (feature) {
-      // Check if the feature is an Epic
-      const featureIsEpic = isEpic(feature);
-      const newFeatureObj = { feature, description };
+    if (!feature || feature.trim() === "") return;
 
-      if (featureIsEpic) {
-        const existingEpic = getSelectedEpic();
-        // Remove any existing epics and add the new one
-        const filteredFeatures = selectedFeatures.filter((f) => !isEpic(f.feature));
-        setSelectedFeatures([...filteredFeatures, newFeatureObj]);
+    const trimmedFeature = feature.trim();
+    const trimmedDescription = (description || "").trim();
 
-        // Show toast notification about Epic replacement
-        if (existingEpic && existingEpic !== feature) {
-          toast({
-            title: "Epic Replaced",
-            description: `"${existingEpic}" has been replaced with "${feature}"`,
-          });
-        } else if (!existingEpic) {
-          toast({
-            title: "Epic Selected",
-            description: `Epic "${feature}" has been selected`,
-          });
-        }
-      } else {
-        // Only add if not already present
-        if (!selectedFeatures.some(f => f.feature === feature)) {
-          setSelectedFeatures([...selectedFeatures, newFeatureObj]);
-        }
-      }
-      setCustomFeature("");
+    // Maximum features limit (optional - you can adjust or remove this)
+    const MAX_FEATURES = 50;
+    if (selectedFeatures.length >= MAX_FEATURES) {
+      toast({
+        title: "Feature Limit Reached",
+        description: `Maximum of ${MAX_FEATURES} features allowed`,
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Check if the feature is an Epic
+    const featureIsEpic = isEpic(trimmedFeature);
+    const newFeatureObj = {
+      name: trimmedFeature,
+      description: trimmedDescription,
+    };
+
+    if (featureIsEpic) {
+      const existingEpic = getSelectedEpic();
+
+      // If it's the same epic, don't add it again
+      if (existingEpic === trimmedFeature) {
+        console.log("Epic already selected:", trimmedFeature);
+        return;
+      }
+
+      // Remove any existing epics and add the new one
+      setSelectedFeatures((prev) => {
+        const filteredFeatures = prev.filter((f) => !isEpic(f.name));
+        console.log("Replacing epic. Previous features:", filteredFeatures);
+        return [...filteredFeatures, newFeatureObj];
+      });
+
+      // Show toast notification about Epic replacement
+      if (existingEpic && existingEpic !== trimmedFeature) {
+        toast({
+          title: "Epic Replaced",
+          description: `"${existingEpic}" has been replaced with "${trimmedFeature}"`,
+        });
+      } else if (!existingEpic) {
+        toast({
+          title: "Epic Selected",
+          description: `Epic "${trimmedFeature}" has been selected`,
+        });
+      }
+    } else {
+      // For regular features, use functional update to ensure we have latest state
+      setSelectedFeatures((prev) => {
+        // Check if feature already exists
+        if (prev.some((f) => f.name === trimmedFeature)) {
+          console.log("Feature already exists:", trimmedFeature);
+          toast({
+            title: "Feature Already Added",
+            description: `"${trimmedFeature}" is already in your list`,
+            variant: "default",
+          });
+          return prev; // Return unchanged array
+        }
+
+        console.log("Adding new feature:", newFeatureObj);
+        return [...prev, newFeatureObj];
+      });
+    }
+
+    // Clear the input fields after adding
+    setCustomFeature("");
+    setCustomFeatureDescription("");
   };
 
   const removeFeature = (feature: string) => {
-    setSelectedFeatures(selectedFeatures.filter((f) => f.feature !== feature));
+    setSelectedFeatures(selectedFeatures.filter((f) => f.name !== feature));
   };
 
   const handleJiraImport = (features: string[]) => {
     const newFeatureObjs = features
-      .filter((f) => !selectedFeatures.some(selected => selected.feature === f))
-      .map(f => ({ feature: f }));
+      .filter((f) => !selectedFeatures.some((selected) => selected.name === f))
+      .map((f) => ({ name: f, description: "" }));
     setSelectedFeatures([...selectedFeatures, ...newFeatureObjs]);
   };
 
@@ -160,21 +223,36 @@ export default function EstimationForm() {
   };
 
   const isEpic = (item: string) => {
-    return (
-      /\[EPIC-\d+\]/.test(item) || // JIRA epic pattern
-      jiraEpics.some((epic) => jiraService.formatIssueAsFeature(epic) === item) || // JIRA epic match
-      PREDEFINED_EPICS.includes(item) // Predefined epic
+    if (!item) return false;
+
+    // Check if it's a JIRA epic pattern
+    const isJiraEpic = /\[EPIC-\d+\]/.test(item);
+
+    // Check if it matches any loaded JIRA epics
+    const matchesJiraEpic = jiraEpics.some(
+      (epic) => jiraService.formatIssueAsFeature(epic) === item
     );
+
+    // Check if it's in predefined epics
+    const isPredefinedEpic = PREDEFINED_EPICS.includes(item);
+
+    const result = isJiraEpic || matchesJiraEpic || isPredefinedEpic;
+
+    return result;
   };
 
   const getSelectedEpic = () => {
-    const epic = selectedFeatures.find((f) => isEpic(f.feature));
-    return epic?.feature || null;
+    const epic = selectedFeatures.find((f) => isEpic(f.name));
+    return epic?.name || null;
   };
 
   const processFile = (
     file: File,
-    onProcessed: (newFeatures: string[], fileName: string) => void
+    onProcessed: (
+      newFeatures: string[],
+      fileName: string,
+      fileObject: File
+    ) => void
   ) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -191,14 +269,42 @@ export default function EstimationForm() {
         const uploadedFeatures = jsonData
           .slice(1)
           .map((row) => row[0]?.trim())
-          .filter(Boolean);
+          .filter((f) => {
+            // Filter out invalid entries
+            if (!f || typeof f !== "string") return false;
+            if (f.length > 200) return false; // Skip overly long entries
+            if (f.length < 3) return false; // Skip very short entries
+            return true;
+          });
 
-        // Get unique new features
-        const newFeatures = uploadedFeatures.filter(
-          (f) => f && !selectedFeatures.some(selected => selected.feature === f)
+        console.log(
+          `Processing file ${file.name}: found ${uploadedFeatures.length} features`
         );
 
-        onProcessed(newFeatures, file.name);
+        // Limit the number of features from each file to prevent overload
+        const MAX_FEATURES_PER_FILE = 50;
+        const limitedFeatures = uploadedFeatures.slice(
+          0,
+          MAX_FEATURES_PER_FILE
+        );
+
+        if (uploadedFeatures.length > MAX_FEATURES_PER_FILE) {
+          console.warn(
+            `File ${file.name} contained ${uploadedFeatures.length} features, limiting to ${MAX_FEATURES_PER_FILE}`
+          );
+          toast({
+            title: "Features Limited",
+            description: `File ${file.name} contained too many features. Only the first ${MAX_FEATURES_PER_FILE} were added.`,
+            variant: "default",
+          });
+        }
+
+        // Get unique new features
+        const newFeatures = limitedFeatures.filter(
+          (f) => f && !selectedFeatures.some((selected) => selected.name === f)
+        );
+
+        onProcessed(newFeatures, file.name, file);
       } catch (error) {
         toast({
           title: "Error",
@@ -214,31 +320,35 @@ export default function EstimationForm() {
     if (!files || files.length === 0) return;
 
     let processedCount = 0;
-    let totalNewFeatures = 0;
+    let totalFeaturesFound = 0;
 
     Array.from(files).forEach((file) => {
-      processFile(file, (newFeatures, fileName) => {
+      processFile(file, (newFeatures, fileName, fileObject) => {
         if (newFeatures.length > 0) {
-          const newFeatureObjects = newFeatures.map(f => ({ feature: f }));
-          setSelectedFeatures((prev) => [...prev, ...newFeatureObjects]);
+          // Store file details including the actual File object
           setUploadedFiles((prev) => [
             ...prev,
-            { name: fileName, features: newFeatures },
+            { name: fileName, features: newFeatures, file: fileObject },
           ]);
-          totalNewFeatures += newFeatures.length;
+          totalFeaturesFound += newFeatures.length;
+
+          console.log(
+            `File ${fileName} processed: ${newFeatures.length} features found but not added to form`
+          );
         }
 
         processedCount++;
         if (processedCount === files.length) {
-          if (totalNewFeatures > 0) {
+          if (totalFeaturesFound > 0) {
             toast({
-              title: "Success",
-              description: `${totalNewFeatures} features added from Excel sheet(s)`,
+              title: "File Uploaded Successfully",
+              description: `${totalFeaturesFound} features found in ${files.length} Excel sheet(s). File details will be included in submission.`,
             });
           } else {
             toast({
-              title: "Info",
-              description: "No new features found in the Excel sheet(s)",
+              title: "File Uploaded",
+              description:
+                "Excel sheet(s) uploaded but no valid features found",
             });
           }
         }
@@ -278,7 +388,10 @@ export default function EstimationForm() {
     // Then process new file
     processFile(file, (newFeatures, fileName) => {
       if (newFeatures.length > 0) {
-        const newFeatureObjects = newFeatures.map(f => ({ feature: f }));
+        const newFeatureObjects = newFeatures.map((f) => ({
+          name: f,
+          description: "",
+        }));
         setSelectedFeatures((prev) => [...prev, ...newFeatureObjects]);
         setUploadedFiles((prev) => {
           const newList = [...prev];
@@ -300,10 +413,16 @@ export default function EstimationForm() {
 
   const removeUploadedFile = (index: number) => {
     const file = uploadedFiles[index];
-    setSelectedFeatures((prev) =>
-      prev.filter((f) => !file.features.includes(f.feature))
-    );
+    console.log(`Removing uploaded file: ${file.name}`);
+
+    // Only remove the file from uploadedFiles, don't touch selectedFeatures
+    // since uploaded files no longer automatically add features to the form
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+
+    toast({
+      title: "File Removed",
+      description: `${file.name} has been removed from uploads`,
+    });
   };
 
   const updateTeamMember = (role: keyof TeamMember, value: number) => {
@@ -313,7 +432,7 @@ export default function EstimationForm() {
     }));
   };
 
-  const handleGenerateAI = async () => {
+  const handleSubmitForm = async () => {
     if (selectedFeatures.length === 0) {
       toast({
         title: "Error",
@@ -323,84 +442,172 @@ export default function EstimationForm() {
       return;
     }
 
-    setIsGenerating(true);
-    try {
-      const estimation = await generateAIEstimation({
-        features: selectedFeatures,
-        sprintSize,
-        teamMembers,
-        sprintVelocity,
-        dependencies,
-        customNotes,
-        tshirtSize,
-        uploadedFiles,
-        jiraEpics,
-      });
-      setAiEstimation(estimation);
-      toast({
-        title: "AI Estimation Generated",
-        description: "Your project estimation has been generated successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate AI estimation",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+    console.log("=== FORM SUBMISSION DEBUG ===");
+    console.log("Total selectedFeatures count:", selectedFeatures.length);
+    console.log("Raw selectedFeatures:", selectedFeatures);
 
-  const handleSaveEstimation = () => {
-    if (!aiEstimation) {
+    // Clean and validate selectedFeatures - only include valid, user-added features
+    const validFeatures = selectedFeatures.filter((f) => {
+      // Must have a valid name
+      if (!f.name || typeof f.name !== "string" || f.name.trim() === "") {
+        console.warn("Filtering out invalid feature:", f);
+        return false;
+      }
+
+      // Must not be extremely long (likely corrupted data)
+      if (f.name.length > 200) {
+        console.warn(
+          "Filtering out overly long feature:",
+          f.name.substring(0, 50) + "..."
+        );
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log("Valid features after filtering:", validFeatures.length);
+    console.log("Valid features:", validFeatures);
+
+    // Get the selected epic (if any) from valid features
+    const epicFeature = validFeatures.find((f) => isEpic(f.name));
+    const selectedEpic = epicFeature?.name || null;
+
+    // Extract only actual features (exclude epics) with name and description
+    const featuresData = validFeatures
+      .filter((f) => !isEpic(f.name))
+      .map((f) => ({
+        name: f.name.trim(),
+        description: (f.description || "").trim(),
+      }));
+
+    console.log("Final features to send:", featuresData);
+    console.log("Selected epic:", selectedEpic);
+
+    // Validate that we have at least one feature (not just an epic)
+    if (featuresData.length === 0 && selectedEpic) {
       toast({
         title: "Error",
-        description: "Please generate AI estimation first",
+        description:
+          "Please select at least one feature in addition to the epic",
         variant: "destructive",
       });
       return;
     }
 
-    const estimationData: EstimationData = {
-      id: Date.now().toString(),
-      features: selectedFeatures,
-      sprintSize,
-      teamMembers,
-      sprintVelocity,
-      dependencies,
-      customNotes,
-      tshirtSize,
-      aiEstimation,
-      createdAt: new Date(),
-    };
+    if (featuresData.length === 0 && !selectedEpic) {
+      toast({
+        title: "Error",
+        description: "No valid features found to submit",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    saveEstimationData(estimationData);
-    toast({
-      title: "Success",
-      description: "Estimation saved successfully",
-    });
+    setIsSubmitting(true);
+    try {
+      // Prepare request data in the specified format
+      const requestData = {
+        features: featuresData, // Only valid user-selected features
+        epics: selectedEpic ? { epic1: selectedEpic } : {},
+        tShirtSizing: tshirtSize || "M",
+        oldReferenceSheet: uploadedFiles.map((file) => ({
+          fileName: file.name,
+          features: file.features,
+          uploadedAt: new Date().toISOString(),
+        })),
+        dependencies: dependencies || "",
+        sprintConfiguration: {
+          duration: sprintSize,
+          velocity: sprintVelocity,
+        },
+        teamComposition: {
+          developers: teamMembers.developers,
+          qa: teamMembers.qa,
+          po: teamMembers.po,
+          ba: teamMembers.ba,
+          managers: teamMembers.managers,
+          deliveryManagers: teamMembers.deliveryManagers,
+          architects: teamMembers.architects,
+        },
+        additionalNotes: customNotes || "",
+      };
 
-    // Reset form
-    setSelectedFeatures([]);
-    setCustomFeature("");
-    setCustomFeatureDescription("");
-    setSprintSize(2);
-    setTeamMembers({
-      developers: 0,
-      qa: 0,
-      po: 0,
-      ba: 0,
-      managers: 0,
-      deliveryManagers: 0,
-      architects: 0,
-    });
-    setSprintVelocity(20);
-    setDependencies("");
-    setCustomNotes("");
-    setTshirtSize("");
-    setAiEstimation(null);
-    setUploadedFiles([]);
+      // Prepare excel file details
+      const excelDetails = uploadedFiles.map((file) => ({
+        name: file.name,
+        features: file.features,
+        uploadedAt: new Date().toISOString(),
+      }));
+
+      // Create FormData
+      const formData = new FormData();
+
+      // Add payload as JSON string
+      formData.append("payload", JSON.stringify(requestData));
+
+      // Add excel details as JSON string
+      // formData.append("excel", JSON.stringify(excelDetails));
+
+      // Add actual Excel files
+      uploadedFiles.forEach((uploadedFile, index) => {
+        if (uploadedFile.file) {
+          formData.append(`excel`, uploadedFile.file, uploadedFile.name);
+        }
+      });
+
+      console.log("=== FINAL PAYLOAD ===");
+      console.log("Features count:", requestData.features.length);
+      console.log("Request Data:", requestData);
+      console.log("Excel Details:", excelDetails);
+      console.log("Uploaded Files Count:", uploadedFiles.length);
+      console.log("FormData entries:");
+      for (let [key, value] of formData.entries()) {
+        if (typeof value === "string") {
+          try {
+            console.log(`${key}:`, JSON.parse(value));
+          } catch {
+            console.log(`${key}:`, value);
+          }
+        } else if (value instanceof File) {
+          console.log(`${key}:`, `File - ${value.name} (${value.size} bytes)`);
+        } else {
+          console.log(`${key}:`, value);
+        }
+      }
+
+      // Call external API directly
+      const response = await fetch("http://localhost:8080/api/predict-new-feature", {
+        method: "POST",
+        body: formData, // No Content-Type header needed for FormData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setApiResponse(data);
+
+      // Store response in localStorage for dashboard access
+      localStorage.setItem("apiResponse", JSON.stringify(data));
+
+      toast({
+        title: "Success",
+        description:
+          "Form submitted successfully! Check dashboard for results.",
+      });
+    } catch (error) {
+      console.error("Submit error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to submit form",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -441,7 +648,13 @@ export default function EstimationForm() {
                   replace the current one)
                 </p>
                 <div className="flex space-x-4">
-                  <Select onValueChange={addFeature}>
+                  <Select
+                    value={selectValue}
+                    onValueChange={(value) => {
+                      addFeature(value);
+                      setSelectValue(""); // Reset select after adding
+                    }}
+                  >
                     <SelectTrigger className="form-input flex-1">
                       <SelectValue
                         placeholder={
@@ -467,15 +680,7 @@ export default function EstimationForm() {
                           </div>
                         </SelectItem>
                       ))}
-                      <div className="my-2 border-t" />
-                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
-                        Predefined Features
-                      </div>
-                      {PREDEFINED_FEATURES.map((feature) => (
-                        <SelectItem key={feature} value={feature}>
-                          {feature}
-                        </SelectItem>
-                      ))}
+
                       {jiraEpics.length > 0 && (
                         <>
                           <div className="my-2 border-t" />
@@ -544,7 +749,10 @@ export default function EstimationForm() {
                         className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 shadow-lg hover:shadow-xl transition-all duration-300"
                         onClick={() => {
                           if (customFeature.trim()) {
-                            addFeature(customFeature.trim(), customFeatureDescription.trim() || undefined);
+                            addFeature(
+                              customFeature.trim(),
+                              customFeatureDescription.trim() || undefined
+                            );
                             setCustomFeature("");
                             setCustomFeatureDescription("");
                           }
@@ -562,7 +770,9 @@ export default function EstimationForm() {
                         </Label>
                         <Textarea
                           value={customFeatureDescription}
-                          onChange={(e) => setCustomFeatureDescription(e.target.value)}
+                          onChange={(e) =>
+                            setCustomFeatureDescription(e.target.value)
+                          }
                           placeholder="Enter a detailed description of the custom feature..."
                           className="form-input min-h-[80px] resize-none"
                           rows={3}
@@ -574,32 +784,84 @@ export default function EstimationForm() {
 
                 {selectedFeatures.length > 0 && (
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="text-sm font-medium text-gray-700 mb-4">
-                      Selected Items ({selectedFeatures.length})
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-sm font-medium text-gray-700">
+                          Selected Items ({selectedFeatures.length})
+                        </div>
+                        {selectedFeatures.length > 100 && (
+                          <Badge variant="destructive" className="text-xs">
+                            Too Many ({selectedFeatures.length})
+                          </Badge>
+                        )}
+                        {selectedFeatures.length > 20 &&
+                          selectedFeatures.length <= 100 && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-orange-300 text-orange-600"
+                            >
+                              High Count ({selectedFeatures.length})
+                            </Badge>
+                          )}
+                      </div>
+                      <div className="flex space-x-2">
+                        {selectedFeatures.length > 50 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={resetFormData}
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Reset Form
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFeatures([]);
+                            setSelectValue("");
+                            toast({
+                              title: "Cleared",
+                              description: "All features have been removed",
+                            });
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Clear All
+                        </Button>
+                      </div>
                     </div>
-                    
+
                     {/* Epics Section */}
-                    {selectedFeatures.some(f => isEpic(f.feature)) && (
+                    {selectedFeatures.some((f) => isEpic(f.name)) && (
                       <div className="mb-4">
                         <div className="flex items-center space-x-2 mb-2">
                           <Badge className="bg-purple-600 text-white text-xs font-semibold">
                             Epics
                           </Badge>
                           <span className="text-xs text-gray-600">
-                            ({selectedFeatures.filter(f => isEpic(f.feature)).length})
+                            (
+                            {
+                              selectedFeatures.filter((f) => isEpic(f.name))
+                                .length
+                            }
+                            )
                           </span>
                         </div>
                         <ul className="space-y-2">
                           {selectedFeatures
-                            .filter(f => isEpic(f.feature))
+                            .filter((f) => isEpic(f.name))
                             .map((epic, index) => (
                               <li
-                                key={`epic-${epic.feature}-${index}`}
+                                key={`epic-${epic.name}-${index}`}
                                 className="flex items-center justify-between p-3 rounded border-2 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-300 hover:border-purple-400 shadow-sm transition-colors"
                               >
                                 <div className="flex items-center flex-1 mr-2">
                                   <span className="text-sm text-purple-800 font-medium">
-                                    {epic.feature}
+                                    {epic.name}
                                   </span>
                                   {epic.description && (
                                     <Popover>
@@ -614,8 +876,12 @@ export default function EstimationForm() {
                                       </PopoverTrigger>
                                       <PopoverContent className="w-80">
                                         <div className="space-y-2">
-                                          <h4 className="font-semibold text-sm">{epic.feature}</h4>
-                                          <p className="text-sm text-gray-600">{epic.description}</p>
+                                          <h4 className="font-semibold text-sm">
+                                            {epic.name}
+                                          </h4>
+                                          <p className="text-sm text-gray-600">
+                                            {epic.description}
+                                          </p>
                                         </div>
                                       </PopoverContent>
                                     </Popover>
@@ -625,7 +891,7 @@ export default function EstimationForm() {
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                  onClick={() => removeFeature(epic.feature)}
+                                  onClick={() => removeFeature(epic.name)}
                                 >
                                   <X className="w-4 h-4" />
                                 </Button>
@@ -636,28 +902,33 @@ export default function EstimationForm() {
                     )}
 
                     {/* Features Section */}
-                    {selectedFeatures.some(f => !isEpic(f.feature)) && (
+                    {selectedFeatures.some((f) => !isEpic(f.name)) && (
                       <div>
                         <div className="flex items-center space-x-2 mb-2">
                           <Badge className="bg-blue-600 text-white text-xs font-semibold">
                             Features
                           </Badge>
                           <span className="text-xs text-gray-600">
-                            ({selectedFeatures.filter(f => !isEpic(f.feature)).length})
+                            (
+                            {
+                              selectedFeatures.filter((f) => !isEpic(f.name))
+                                .length
+                            }
+                            )
                           </span>
                         </div>
                         <div className="max-h-32 overflow-y-auto">
                           <ul className="space-y-2">
                             {selectedFeatures
-                              .filter(f => !isEpic(f.feature))
+                              .filter((f) => !isEpic(f.name))
                               .map((featureObj, index) => (
                                 <li
-                                  key={`feature-${featureObj.feature}-${index}`}
+                                  key={`feature-${featureObj.name}-${index}`}
                                   className="flex items-center justify-between p-3 rounded border-2 bg-white border-gray-200 hover:border-blue-300 transition-colors"
                                 >
                                   <div className="flex items-center flex-1 mr-2">
                                     <span className="text-sm text-gray-700">
-                                      {featureObj.feature}
+                                      {featureObj.name}
                                     </span>
                                     {featureObj.description && (
                                       <Popover>
@@ -672,8 +943,12 @@ export default function EstimationForm() {
                                         </PopoverTrigger>
                                         <PopoverContent className="w-80">
                                           <div className="space-y-2">
-                                            <h4 className="font-semibold text-sm">{featureObj.feature}</h4>
-                                            <p className="text-sm text-gray-600">{featureObj.description}</p>
+                                            <h4 className="font-semibold text-sm">
+                                              {featureObj.name}
+                                            </h4>
+                                            <p className="text-sm text-gray-600">
+                                              {featureObj.description}
+                                            </p>
                                           </div>
                                         </PopoverContent>
                                       </Popover>
@@ -683,7 +958,9 @@ export default function EstimationForm() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                    onClick={() => removeFeature(featureObj.feature)}
+                                    onClick={() =>
+                                      removeFeature(featureObj.name)
+                                    }
                                   >
                                     <X className="w-4 h-4" />
                                   </Button>
@@ -976,149 +1253,52 @@ export default function EstimationForm() {
         </CardContent>
       </Card>
 
-      {/* Generate AI Button */}
+      {/* Submit Form Button */}
       <div className="text-center py-8">
         <Button
-          onClick={handleGenerateAI}
-          disabled={isGenerating || selectedFeatures.length === 0}
+          onClick={handleSubmitForm}
+          disabled={isSubmitting || selectedFeatures.length === 0}
           className="gradient-button px-16 py-6 text-xl pulse-shadow rounded-2xl"
           size="lg"
         >
-          {isGenerating ? (
+          {isSubmitting ? (
             <>
               <Loader2 className="w-6 h-6 mr-4 animate-spin" />
-              Generating AI Estimation...
+              Submitting Form...
             </>
           ) : (
             <>
-              <Sparkles className="w-6 h-6 mr-4" />
-              Generate AI Estimation
+              <Upload className="w-6 h-6 mr-4" />
+              Submit Form
             </>
           )}
         </Button>
         <p className="text-blue-600/70 mt-4 text-sm">
-          Our AI will analyze your requirements and provide detailed estimations
+          Submit your form data to get prediction results
         </p>
       </div>
 
-      {/* AI Estimation Results */}
-      {aiEstimation && (
-        <Card className="ai-results-card professional-card hover-lift">
+      {/* API Response Display */}
+      {apiResponse && (
+        <Card className="professional-card hover-lift">
           <CardHeader>
             <CardTitle className="section-header">
               <div className="icon-wrapper bg-gradient-to-br from-green-100 to-green-200 floating-animation">
-                <Sparkles className="w-6 h-6 text-green-600" />
+                <FileText className="w-6 h-6 text-green-600" />
               </div>
-              <span>AI Estimation Results</span>
+              <span>Prediction Results</span>
               <div className="ml-auto">
                 <Badge className="bg-green-100 text-green-700 border border-green-200">
-                  Generated
+                  Response
                 </Badge>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="form-section">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-              <div className="metric-card hover-lift">
-                <div className="text-4xl font-bold text-blue-600 mb-3">
-                  {aiEstimation.totalStoryPoints}
-                </div>
-                <div className="text-sm font-medium text-blue-500">
-                  Total Story Points
-                </div>
-                <div className="w-full bg-blue-100 rounded-full h-2 mt-3">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: "100%" }}
-                  ></div>
-                </div>
-              </div>
-              <div className="metric-card hover-lift">
-                <div className="text-4xl font-bold text-green-600 mb-3">
-                  {aiEstimation.estimatedSprints}
-                </div>
-                <div className="text-sm font-medium text-green-500">
-                  Estimated Sprints
-                </div>
-                <div className="w-full bg-green-100 rounded-full h-2 mt-3">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: "85%" }}
-                  ></div>
-                </div>
-              </div>
-              <div className="metric-card hover-lift">
-                <div
-                  className={`text-4xl font-bold mb-3 ${
-                    aiEstimation.riskLevel === "High"
-                      ? "text-red-600"
-                      : aiEstimation.riskLevel === "Medium"
-                      ? "text-orange-600"
-                      : "text-green-600"
-                  }`}
-                >
-                  {aiEstimation.riskLevel}
-                </div>
-                <div className="text-sm font-medium text-gray-500">
-                  Risk Level
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2 mt-3">
-                  <div
-                    className={`h-2 rounded-full ${
-                      aiEstimation.riskLevel === "High"
-                        ? "bg-red-600"
-                        : aiEstimation.riskLevel === "Medium"
-                        ? "bg-orange-600"
-                        : "bg-green-600"
-                    }`}
-                    style={{
-                      width:
-                        aiEstimation.riskLevel === "High"
-                          ? "90%"
-                          : aiEstimation.riskLevel === "Medium"
-                          ? "60%"
-                          : "30%",
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="section-divider"></div>
-
-            <div className="space-y-6">
-              <div className="form-label flex items-center space-x-2">
-                <Lightbulb className="w-5 h-5 text-blue-600" />
-                <span>AI Recommendations</span>
-              </div>
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/50">
-                <ul className="space-y-4">
-                  {aiEstimation.recommendations.map(
-                    (rec: string, index: number) => (
-                      <li
-                        key={index}
-                        className="flex items-start space-x-4 text-blue-800 hover:bg-blue-100/50 transition-colors p-2 rounded-lg"
-                      >
-                        <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-white text-xs font-bold">
-                            {index + 1}
-                          </span>
-                        </div>
-                        <span className="leading-relaxed">{rec}</span>
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-            </div>
-
-            <div className="text-center pt-6">
-              <Button
-                onClick={handleSaveEstimation}
-                className="gradient-button px-12 py-4 text-lg rounded-2xl shadow-xl hover:shadow-2xl pulse-shadow"
-              >
-                Save Estimation
-              </Button>
+            <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
+              <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+                {JSON.stringify(apiResponse, null, 2)}
+              </pre>
             </div>
           </CardContent>
         </Card>

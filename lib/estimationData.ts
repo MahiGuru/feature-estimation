@@ -45,8 +45,8 @@ export const generateAIEstimation = async (data: Partial<EstimationData & {
 
     // Separate epics and features from selected items
     const selectedItems = data.features || [];
-    const epicsOnly = selectedItems.filter(item => isEpic(item.feature));
-    const featuresOnly = selectedItems.filter(item => !isEpic(item.feature));
+    const epicsOnly = selectedItems.filter(item => isEpic(item.name));
+    const featuresOnly = selectedItems.filter(item => !isEpic(item.name));
 
     const response = await fetch('/api/generate-estimation', {
       method: 'POST',
@@ -55,11 +55,11 @@ export const generateAIEstimation = async (data: Partial<EstimationData & {
       },
       body: JSON.stringify({
         features: featuresOnly.map(featureObj => ({
-          feature: featureObj.feature,
+          name: featureObj.name,
           description: featureObj.description || ''
         })),
         epics: epicsOnly.map(epicObj => ({
-          feature: epicObj.feature,
+          name: epicObj.name,
           description: epicObj.description || ''
         })),
         t_shirt_sizing: data.tshirtSize || '',

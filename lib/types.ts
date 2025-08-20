@@ -9,7 +9,7 @@ export interface TeamMember {
 }
 
 export interface FeatureItem {
-  feature: string;
+  name: string;
   description?: string;
 }
 
