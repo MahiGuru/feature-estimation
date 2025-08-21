@@ -3,7 +3,9 @@ const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig = {
   basePath: isProd ? "/feature-estimation" : "",
-
+  output: 'export',
+  trailingSlash: true,
+  
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,6 +13,25 @@ const nextConfig = {
   assetPrefix: isProd ? "/feature-estimation/" : "",
 
   webpack: (config, { isServer, dev }) => {
+    // Enhanced tree-shaking optimization (only in production)
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: false,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
+      };
+    }
+
     // Suppress webpack warnings
     config.ignoreWarnings = [
       /Critical dependency: the request of a dependency is an expression/,
@@ -38,6 +59,9 @@ const nextConfig = {
 
   // Additional configurations for cleaner development
   reactStrictMode: false, // Disable strict mode to reduce development warnings
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
 };
 
 module.exports = nextConfig;

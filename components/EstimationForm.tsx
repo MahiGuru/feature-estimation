@@ -47,11 +47,18 @@ import { JiraImportDialog } from "./JiraImportDialog";
 import { JiraAutocomplete } from "./JiraAutocomplete";
 import { usePredictionStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import LoadingScreen from "./LoadingScreen";
 
 export default function EstimationForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const { setPredictionData, setLoading, setError } = usePredictionStore();
+  const {
+    setPredictionData,
+    setLoading,
+    setError,
+    isLoading,
+    error: storeError,
+  } = usePredictionStore();
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([
     {
       name: "MSTeams SSO Integration",
@@ -68,6 +75,13 @@ export default function EstimationForm() {
   ]);
   const [customFeature, setCustomFeature] = useState("");
   const [customFeatureDescription, setCustomFeatureDescription] = useState("");
+  const [featureStartDate, setFeatureStartDate] = useState("");
+  const [featureEndDate, setFeatureEndDate] = useState("");
+  const [featureTshirtSize, setFeatureTshirtSize] = useState("");
+  const [featureFiles, setFeatureFiles] = useState<File[]>([]);
+  const [detailedFeatureName, setDetailedFeatureName] = useState("");
+  const [detailedFeatureDescription, setDetailedFeatureDescription] =
+    useState("");
   const [sprintSize, setSprintSize] = useState<number>(2);
   const [teamMembers, setTeamMembers] = useState<TeamMember>({
     developers: 5,
@@ -99,6 +113,19 @@ export default function EstimationForm() {
   const [apiResponse, setApiResponse] = useState<any>(null);
 
   // Function to completely reset form data
+  // Handle retry functionality
+  const handleRetry = () => {
+    setError(null);
+    handleSubmitForm();
+  };
+
+  // Handle back to form functionality
+  const handleBackToForm = () => {
+    setError(null);
+    setLoading(false);
+    setIsSubmitting(false);
+  };
+
   const resetFormData = () => {
     setSelectedFeatures([]);
     setCustomFeature("");
@@ -118,11 +145,14 @@ export default function EstimationForm() {
     const configured = jiraService.isConfigured();
     setIsJiraConfigured(configured);
 
+    // Clear any existing error state when component mounts
+    setError(null);
+
     // Load JIRA epics if configured
     if (configured) {
       loadJiraEpics();
     }
-  }, []);
+  }, [setError]);
 
   const loadJiraEpics = async () => {
     setIsLoadingEpics(true);
@@ -136,7 +166,16 @@ export default function EstimationForm() {
     }
   };
 
-  const addFeature = (feature: string, description?: string) => {
+  const addFeature = (
+    feature: string,
+    description?: string,
+    additionalData?: {
+      startDate?: string;
+      endDate?: string;
+      tshirtSize?: string;
+      files?: File[];
+    }
+  ) => {
     if (!feature || feature.trim() === "") return;
 
     const trimmedFeature = feature.trim();
@@ -158,6 +197,10 @@ export default function EstimationForm() {
     const newFeatureObj = {
       name: trimmedFeature,
       description: trimmedDescription,
+      startDate: additionalData?.startDate || "",
+      endDate: additionalData?.endDate || "",
+      tshirtSize: additionalData?.tshirtSize || "",
+      files: additionalData?.files || [],
     };
 
     if (featureIsEpic) {
@@ -210,6 +253,15 @@ export default function EstimationForm() {
     // Clear the input fields after adding
     setCustomFeature("");
     setCustomFeatureDescription("");
+  };
+
+  const clearFeatureForm = () => {
+    setDetailedFeatureName("");
+    setDetailedFeatureDescription("");
+    setFeatureStartDate("");
+    setFeatureEndDate("");
+    setFeatureTshirtSize("");
+    setFeatureFiles([]);
   };
 
   const removeFeature = (feature: string) => {
@@ -518,7 +570,10 @@ export default function EstimationForm() {
     setIsSubmitting(true);
     setLoading(true);
     setError(null);
+
     try {
+      // Add a minimum delay to ensure loading screen is visible
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Prepare request data in the specified format
       const requestData = {
         features: featuresData, // Only valid user-selected features
@@ -599,7 +654,9 @@ export default function EstimationForm() {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+          `Server responded with status ${response.status}. Please check if the API server is running.`
+        );
       }
 
       const data = await response.json();
@@ -613,28 +670,40 @@ export default function EstimationForm() {
         description: "Form submitted successfully! Redirecting to dashboard...",
       });
 
-      // Navigate to dashboard after a short delay
+      // Navigate to dashboard after a short delay to show completion
       setTimeout(() => {
+        setLoading(false);
+        setIsSubmitting(false);
         router.push("/dashboard");
-      }, 1500);
+      }, 2000);
     } catch (error) {
       console.error("Submit error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to submit form";
+      let errorMessage = "Failed to submit form";
+
+      if (error instanceof Error) {
+        if (error.message.includes("fetch")) {
+          errorMessage =
+            "Cannot connect to the API server. Please ensure the server is running on http://localhost:8080";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       setError(errorMessage);
+      // Keep loading state true to show error overlay
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
     } finally {
+      // Only clear isSubmitting here, keep loading for the overlay
       setIsSubmitting(false);
-      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12">
+    <div className="max-w-7xl mx-auto space-y-12 relative">
       {/* Features & Dependencies Card */}
       <Card className="professional-card hover-lift">
         <CardHeader>
@@ -805,6 +874,224 @@ export default function EstimationForm() {
                   </div>
                 </div>
 
+                {/* Enhanced Feature Addition Section */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 mt-8">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Plus className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-900">
+                        Add Feature
+                      </h3>
+                      <p className="text-sm text-green-700">
+                        Add a feature with complete details, dates, and
+                        supporting documents
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      {/* Feature Name */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Feature Name *
+                        </Label>
+                        <Input
+                          value={detailedFeatureName}
+                          onChange={(e) =>
+                            setDetailedFeatureName(e.target.value)
+                          }
+                          placeholder="Enter feature name (e.g., User Authentication System)"
+                          className="form-input"
+                        />
+                      </div>
+
+                      {/* Feature Description */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Feature Description
+                        </Label>
+                        <Textarea
+                          value={detailedFeatureDescription}
+                          onChange={(e) =>
+                            setDetailedFeatureDescription(e.target.value)
+                          }
+                          placeholder="Detailed description of the feature, requirements, and acceptance criteria..."
+                          className="form-input min-h-[120px] resize-none"
+                          rows={5}
+                        />
+                      </div>
+
+                      {/* T-Shirt Size */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          T-Shirt Size Estimation (Optional)
+                        </Label>
+                        <Select
+                          value={featureTshirtSize}
+                          onValueChange={setFeatureTshirtSize}
+                        >
+                          <SelectTrigger className="form-input">
+                            <SelectValue placeholder="Select size estimation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="XS">
+                              XS - Very Small (1-2 days)
+                            </SelectItem>
+                            <SelectItem value="S">
+                              S - Small (3-5 days)
+                            </SelectItem>
+                            <SelectItem value="M">
+                              M - Medium (1-2 weeks)
+                            </SelectItem>
+                            <SelectItem value="L">
+                              L - Large (2-4 weeks)
+                            </SelectItem>
+                            <SelectItem value="XL">
+                              XL - Extra Large (1-2 months)
+                            </SelectItem>
+                            <SelectItem value="XXL">
+                              XXL - Epic (2+ months)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                      {/* Start Date */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Planned Start Date
+                        </Label>
+                        <Input
+                          type="date"
+                          value={featureStartDate}
+                          onChange={(e) => setFeatureStartDate(e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+
+                      {/* End Date */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Planned End Date
+                        </Label>
+                        <Input
+                          type="date"
+                          value={featureEndDate}
+                          onChange={(e) => setFeatureEndDate(e.target.value)}
+                          className="form-input"
+                          min={featureStartDate}
+                        />
+                      </div>
+
+                      {/* File Upload */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Supporting Documents
+                        </Label>
+                        <div className="border-2 border-dashed border-green-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
+                          <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.txt,.md,.xlsx,.xls"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              setFeatureFiles(files);
+                            }}
+                            className="hidden"
+                            id="feature-files"
+                          />
+                          <label
+                            htmlFor="feature-files"
+                            className="cursor-pointer"
+                          >
+                            <Upload className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600">
+                              Upload HLD, PRD, or estimation documents
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              PDF, DOC, TXT, MD, Excel files
+                            </p>
+                          </label>
+                        </div>
+                        {featureFiles.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {featureFiles.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center space-x-2 text-sm text-gray-600"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span className="truncate">{file.name}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setFeatureFiles((files) =>
+                                      files.filter((_, i) => i !== index)
+                                    );
+                                  }}
+                                  className="h-auto p-1 text-red-500 hover:text-red-700"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-green-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={clearFeatureForm}
+                      className="text-gray-600 hover:text-gray-800"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Clear Form
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (detailedFeatureName.trim()) {
+                          addFeature(
+                            detailedFeatureName.trim(),
+                            detailedFeatureDescription.trim() || undefined,
+                            {
+                              startDate: featureStartDate,
+                              endDate: featureEndDate,
+                              tshirtSize: featureTshirtSize,
+                              files: featureFiles,
+                            }
+                          );
+                          clearFeatureForm();
+                          toast({
+                            title: "Feature Added",
+                            description: `"${detailedFeatureName.trim()}" has been added to your feature list`,
+                          });
+                        }
+                      }}
+                      disabled={!detailedFeatureName.trim()}
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Feature
+                    </Button>
+                  </div>
+                </div>
+
                 {selectedFeatures.length > 0 && (
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <div className="flex justify-between items-center mb-4">
@@ -950,10 +1237,42 @@ export default function EstimationForm() {
                                   className="flex items-center justify-between p-3 rounded border-2 bg-white border-gray-200 hover:border-blue-300 transition-colors"
                                 >
                                   <div className="flex items-center flex-1 mr-2">
-                                    <span className="text-sm text-gray-700">
-                                      {featureObj.name}
-                                    </span>
-                                    {featureObj.description && (
+                                    <div className="flex flex-col flex-1">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-sm text-gray-700">
+                                          {featureObj.name}
+                                        </span>
+                                        {featureObj.tshirtSize && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs"
+                                          >
+                                            {featureObj.tshirtSize}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {(featureObj.startDate ||
+                                        featureObj.endDate) && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          {featureObj.startDate &&
+                                          featureObj.endDate
+                                            ? `${new Date(
+                                                featureObj.startDate
+                                              ).toLocaleDateString()} - ${new Date(
+                                                featureObj.endDate
+                                              ).toLocaleDateString()}`
+                                            : featureObj.startDate
+                                            ? `Start: ${new Date(
+                                                featureObj.startDate
+                                              ).toLocaleDateString()}`
+                                            : `End: ${new Date(
+                                                featureObj.endDate
+                                              ).toLocaleDateString()}`}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {(featureObj.description ||
+                                      featureObj.files?.length) && (
                                       <Popover>
                                         <PopoverTrigger asChild>
                                           <Button
@@ -964,14 +1283,82 @@ export default function EstimationForm() {
                                             <Info className="w-3 h-3" />
                                           </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-80">
-                                          <div className="space-y-2">
+                                        <PopoverContent className="w-96">
+                                          <div className="space-y-3">
                                             <h4 className="font-semibold text-sm">
                                               {featureObj.name}
                                             </h4>
-                                            <p className="text-sm text-gray-600">
-                                              {featureObj.description}
-                                            </p>
+                                            {featureObj.description && (
+                                              <p className="text-sm text-gray-600">
+                                                {featureObj.description}
+                                              </p>
+                                            )}
+
+                                            <div className="grid grid-cols-2 gap-3 text-xs">
+                                              {featureObj.tshirtSize && (
+                                                <div>
+                                                  <span className="font-medium text-gray-500">
+                                                    Size:
+                                                  </span>
+                                                  <Badge
+                                                    variant="outline"
+                                                    className="ml-1 text-xs"
+                                                  >
+                                                    {featureObj.tshirtSize}
+                                                  </Badge>
+                                                </div>
+                                              )}
+
+                                              {featureObj.startDate && (
+                                                <div>
+                                                  <span className="font-medium text-gray-500">
+                                                    Start:
+                                                  </span>
+                                                  <span className="ml-1 text-gray-700">
+                                                    {new Date(
+                                                      featureObj.startDate
+                                                    ).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                              )}
+
+                                              {featureObj.endDate && (
+                                                <div>
+                                                  <span className="font-medium text-gray-500">
+                                                    End:
+                                                  </span>
+                                                  <span className="ml-1 text-gray-700">
+                                                    {new Date(
+                                                      featureObj.endDate
+                                                    ).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                              )}
+
+                                              {featureObj.files &&
+                                                featureObj.files.length > 0 && (
+                                                  <div className="col-span-2">
+                                                    <span className="font-medium text-gray-500">
+                                                      Files:
+                                                    </span>
+                                                    <div className="mt-1 space-y-1">
+                                                      {featureObj.files.map(
+                                                        (file, fileIndex) => (
+                                                          <div
+                                                            key={fileIndex}
+                                                            className="flex items-center space-x-1 text-xs text-gray-600"
+                                                          >
+                                                            <FileText className="w-3 h-3" />
+                                                            <span className="truncate">
+                                                              {file.name}
+                                                            </span>
+                                                          </div>
+                                                        )
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                )}
+                                            </div>
                                           </div>
                                         </PopoverContent>
                                       </Popover>
@@ -1338,6 +1725,14 @@ export default function EstimationForm() {
         open={showJiraImport}
         onOpenChange={setShowJiraImport}
         onImport={handleJiraImport}
+      />
+
+      {/* Loading Screen Overlay */}
+      <LoadingScreen
+        isLoading={isLoading}
+        error={storeError}
+        onRetry={handleRetry}
+        onBackToForm={handleBackToForm}
       />
     </div>
   );

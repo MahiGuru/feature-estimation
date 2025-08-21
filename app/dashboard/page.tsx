@@ -24,9 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// Remove unused imports - now using featureTimelineData.json only
-// import { EstimationData, getEstimationData } from "@/lib/estimationData";
-// import { dummyFeatures, dummyProjects } from "@/lib/dummyData";
 import { Calendar } from "lucide-react";
 
 export default function Dashboard() {

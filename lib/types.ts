@@ -11,6 +11,10 @@ export interface TeamMember {
 export interface FeatureItem {
   name: string;
   description?: string;
+  startDate?: string;
+  endDate?: string;
+  tshirtSize?: string;
+  files?: File[];
 }
 
 export interface EstimationData {
