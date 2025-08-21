@@ -20,6 +20,9 @@ export default function SuppressWarnings() {
         errorString.includes("data-dashlane") ||
         errorString.includes("data-bitwarden") ||
         errorString.includes("data-lpignore") ||
+        errorString.includes("data-sharkid") ||
+        errorString.includes("data-ad-block") ||
+        errorString.includes("data-extension") ||
         errorString.includes("at select") ||
         errorString.includes("Warning: Prop") ||
         errorString.includes("did not match")
@@ -34,6 +37,9 @@ export default function SuppressWarnings() {
 
       if (
         warnString.includes("Extra attributes from the server") ||
+        warnString.includes("data-sharkid") ||
+        warnString.includes("data-ad-block") ||
+        warnString.includes("data-extension") ||
         warnString.includes("at select")
       ) {
         return;

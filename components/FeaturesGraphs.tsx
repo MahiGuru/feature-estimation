@@ -25,6 +25,7 @@ import {
   Legend,
 } from "recharts";
 import { BarChart3, PieChart as PieIcon, TrendingUp } from "lucide-react";
+import { usePredictionStore } from "@/lib/store";
 
 interface ChartData {
   quarter: string;
@@ -35,10 +36,10 @@ interface ChartData {
 
 export default function FeaturesGraphs() {
   const [chartType, setChartType] = useState<"bar" | "pie">("bar");
+  const { predictionData } = usePredictionStore();
 
-  // Load features from JSON
-  const timelineData = require("@/lib/featureTimelinelatest.json");
-  const features = timelineData.features;
+  // Get features from Zustand store
+  const features = predictionData?.features || [];
 
   // Transform feature data for charts
   const getChartData = (feature: any): ChartData[] => {
@@ -162,6 +163,7 @@ export default function FeaturesGraphs() {
       </ResponsiveContainer>
     );
   };
+
 
   return (
     <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl">

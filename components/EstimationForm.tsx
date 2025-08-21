@@ -45,14 +45,25 @@ import { jiraService, JiraIssue } from "@/lib/jiraService";
 import { JiraConfigDialog } from "./JiraConfigDialog";
 import { JiraImportDialog } from "./JiraImportDialog";
 import { JiraAutocomplete } from "./JiraAutocomplete";
+import { usePredictionStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 
 export default function EstimationForm() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { setPredictionData, setLoading, setError } = usePredictionStore();
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([
-    { name: "MSTeams SSO", description: "SSO description comes here...." },
     {
-      name: "JAKARTHA migration",
-      description: "Jakartha description comes here....",
+      name: "MSTeams SSO Integration",
+      description: "Single Sign-On integration with Microsoft Teams",
+    },
+    {
+      name: "Jakartha EE Migration",
+      description: "Migrate application to Jakarta EE 10",
+    },
+    {
+      name: "Angular 20 Upgrade",
+      description: "Upgrade Angular to version 20",
     },
   ]);
   const [customFeature, setCustomFeature] = useState("");
@@ -505,6 +516,8 @@ export default function EstimationForm() {
     }
 
     setIsSubmitting(true);
+    setLoading(true);
+    setError(null);
     try {
       // Prepare request data in the specified format
       const requestData = {
@@ -562,7 +575,7 @@ export default function EstimationForm() {
       console.log("Excel Details:", excelDetails);
       console.log("Uploaded Files Count:", uploadedFiles.length);
       console.log("FormData entries:");
-      for (let [key, value] of formData.entries()) {
+      Array.from(formData.entries()).forEach(([key, value]) => {
         if (typeof value === "string") {
           try {
             console.log(`${key}:`, JSON.parse(value));
@@ -574,63 +587,49 @@ export default function EstimationForm() {
         } else {
           console.log(`${key}:`, value);
         }
-      }
+      });
 
       // Call external API directly
-      const response = await fetch("http://localhost:8080/api/predict-new-feature", {
-        method: "POST",
-        body: formData, // No Content-Type header needed for FormData
-      });
+      const response = await fetch(
+        "http://localhost:8080/api/predict-new-feature",
+        {
+          method: "POST",
+          body: formData, // No Content-Type header needed for FormData
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+
+      // Store in Zustand store
+      setPredictionData(data);
       setApiResponse(data);
-
-      // Store response in localStorage for dashboard access
-      localStorage.setItem("apiResponse", JSON.stringify(data));
-
-      // Create/update featureTimelinelatest.json file
-      try {
-        const jsonContent = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonContent], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        // Create download link
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'featureTimelinelatest.json';
-        
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Clean up
-        URL.revokeObjectURL(url);
-        
-        console.log('featureTimelinelatest.json file created/updated');
-      } catch (fileError) {
-        console.error('Error creating JSON file:', fileError);
-      }
 
       toast({
         title: "Success",
-        description:
-          "Form submitted successfully! Check dashboard for results and download the JSON file.",
+        description: "Form submitted successfully! Redirecting to dashboard...",
       });
+
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1500);
     } catch (error) {
       console.error("Submit error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to submit form";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to submit form",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -941,7 +940,7 @@ export default function EstimationForm() {
                             )
                           </span>
                         </div>
-                        <div className="max-h-32 overflow-y-auto">
+                        <div className="max-h-96 overflow-y-auto">
                           <ul className="space-y-2">
                             {selectedFeatures
                               .filter((f) => !isEpic(f.name))

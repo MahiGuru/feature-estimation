@@ -32,11 +32,13 @@ import {
   Users,
   Clock,
 } from "lucide-react";
+import { usePredictionStore } from "@/lib/store";
 
 export default function EstimationAccuracy() {
-  // Load data from JSON
-  const timelineData = require("@/lib/featureTimelinelatest.json");
-  const { projectEstimation, features } = timelineData;
+  // Load data from Zustand store
+  const { predictionData } = usePredictionStore();
+  const projectEstimation = predictionData?.projectEstimation;
+  const features = predictionData?.features || [];
 
   // Calculate estimation accuracy metrics
   const calculateAccuracyMetrics = () => {

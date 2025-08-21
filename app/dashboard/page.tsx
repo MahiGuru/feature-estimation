@@ -8,6 +8,8 @@ import EstimationAccuracy from "@/components/EstimationAccuracy";
 import ResourceAllocation from "@/components/ResourceAllocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { usePredictionStore } from "@/lib/store";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +30,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "lucide-react";
 
 export default function Dashboard() {
+  // Zustand store
+  const { predictionData, clearData } = usePredictionStore();
+
   // Teams and people for assignment
   const teams = ["Magnolia", "Chambers Bay", "Pebble Beach", "Fairway"];
   const people = [
@@ -52,9 +57,6 @@ export default function Dashboard() {
   // State for active tab
   const [activeTab, setActiveTab] = useState("features");
 
-  // State for API response
-  const [apiResponse, setApiResponse] = useState<any>(null);
-
   const updateFeatureAssignment = (
     featureId: string,
     field: "team" | "assignedTo",
@@ -71,70 +73,75 @@ export default function Dashboard() {
 
   // Initialize random assignments for all features on component mount
   useEffect(() => {
-    const timelineData = require("@/lib/featureTimelinelatest.json");
-    const features = timelineData.features;
+    if (predictionData && predictionData.features) {
+      const features = predictionData.features;
 
-    const initialAssignments: {
-      [key: string]: { team?: string; assignedTo?: string };
-    } = {};
-    features.forEach((feature: any) => {
-      initialAssignments[feature.id] = getRandomAssignment();
-    });
+      const initialAssignments: {
+        [key: string]: { team?: string; assignedTo?: string };
+      } = {};
+      features.forEach((feature: any) => {
+        initialAssignments[feature.id] = getRandomAssignment();
+      });
 
-    setFeatureAssignments(initialAssignments);
-  }, []);
-
-  // Load API response from localStorage
-  useEffect(() => {
-    const savedApiResponse = localStorage.getItem("apiResponse");
-
-    if (savedApiResponse) {
-      try {
-        setApiResponse(JSON.parse(savedApiResponse));
-      } catch (error) {
-        console.error("Error parsing API response:", error);
-      }
+      setFeatureAssignments(initialAssignments);
     }
-  }, []);
+  }, [predictionData]);
+
+  // Show no data state if there's no prediction data
+  if (!predictionData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+        <Navigation />
+        <main className="container mx-auto px-6 py-12">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-center space-x-3">
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <Calendar className="w-8 h-8 text-blue-600" />
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                  No Prediction Data Available
+                </h2>
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  Welcome to the Estimatooo. To see your project timeline,
+                  graphs, and resource allocation, please submit an estimation
+                  form first.
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-blue-800 mb-2">
+                    What you'll see after submitting:
+                  </h3>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Interactive feature timeline calendar</li>
+                    <li>• Resource allocation charts</li>
+                    <li>• Team workload analysis</li>
+                    <li>• Project estimation graphs</li>
+                  </ul>
+                </div>
+
+                <Button
+                  onClick={() => (window.location.href = "/")}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  Go to Estimation Form
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <Navigation />
       <main className="container mx-auto px-6 py-12">
-        {/* API Response Display */}
-        {apiResponse && (
-          <Card className="bg-white border border-green-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-8 overflow-hidden">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">✓</span>
-                  </div>
-                </div>
-                <span className="text-green-900">Prediction Response</span>
-                <div className="ml-auto">
-                  <button
-                    onClick={() => {
-                      setApiResponse(null);
-                      localStorage.removeItem("apiResponse");
-                    }}
-                    className="text-red-500 hover:text-red-700 text-sm"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
-                <pre className="text-sm text-gray-800 whitespace-pre-wrap">
-                  {JSON.stringify(apiResponse, null, 2)}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Feature Tracking Calendar */}
         <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-12 overflow-hidden">
           <CardHeader>
@@ -148,187 +155,191 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {/* Import timeline data */}
-            {(() => {
-              const timelineData = require("@/lib/featureTimelinelatest.json");
-              const features = timelineData.features;
-              const now = new Date();
-              const year = 2025;
+            {/* Use timeline data from Zustand store */}
+            {predictionData && predictionData.features ? (
+              (() => {
+                const features = predictionData.features;
+                const now = new Date();
+                const year = 2025;
 
-              // Synchronized scrolling function for both Features and Teams tabs
-              const handleScroll = (e: any) => {
-                const scrollTop = e.currentTarget.scrollTop;
+                // Synchronized scrolling function for both Features and Teams tabs
+                const handleScroll = (e: any) => {
+                  const scrollTop = e.currentTarget.scrollTop;
 
-                // Features tab scrolling
-                const leftScroll = document.getElementById("left-scroll");
-                const rightScroll = document.getElementById("right-scroll");
+                  // Features tab scrolling
+                  const leftScroll = document.getElementById("left-scroll");
+                  const rightScroll = document.getElementById("right-scroll");
 
-                // Teams tab scrolling
-                const teamsLeftScroll =
-                  document.getElementById("teams-left-scroll");
-                const teamsRightScroll =
-                  document.getElementById("teams-right-scroll");
+                  // Teams tab scrolling
+                  const teamsLeftScroll =
+                    document.getElementById("teams-left-scroll");
+                  const teamsRightScroll =
+                    document.getElementById("teams-right-scroll");
 
-                if (e.currentTarget.id === "left-scroll" && rightScroll) {
-                  rightScroll.scrollTop = scrollTop;
-                } else if (
-                  e.currentTarget.id === "right-scroll" &&
-                  leftScroll
-                ) {
-                  leftScroll.scrollTop = scrollTop;
-                } else if (
-                  e.currentTarget.id === "teams-left-scroll" &&
-                  teamsRightScroll
-                ) {
-                  teamsRightScroll.scrollTop = scrollTop;
-                } else if (
-                  e.currentTarget.id === "teams-right-scroll" &&
-                  teamsLeftScroll
-                ) {
-                  teamsLeftScroll.scrollTop = scrollTop;
-                }
-              };
-
-              const getSizeInfo = (size: string) => {
-                const sizeColors: Record<string, string> = {
-                  S: "bg-green-100 text-green-800 border-green-300",
-                  M: "bg-blue-100 text-blue-800 border-blue-300",
-                  L: "bg-purple-100 text-purple-800 border-purple-300",
-                  XL: "bg-orange-100 text-orange-800 border-orange-300",
-                  XXL: "bg-red-100 text-red-800 border-red-300",
-                };
-                return (
-                  sizeColors[size] ||
-                  "bg-gray-100 text-gray-800 border-gray-300"
-                );
-              };
-
-              const getStatusIcon = (status: string) => {
-                switch (status) {
-                  case "completed":
-                    return "✓";
-                  case "in-progress":
-                    return "◐";
-                  case "blocked":
-                    return "⚠";
-                  default:
-                    return "○";
-                }
-              };
-
-              // Group features by team (including assignment overrides)
-              const getFeaturesByTeam = () => {
-                const teamGroups: { [key: string]: any[] } = {};
-
-                // Initialize all teams
-                teams.forEach((team) => {
-                  teamGroups[team] = [];
-                });
-
-                features.forEach((feature: any) => {
-                  const assignedTeam =
-                    featureAssignments[feature.id]?.team || feature.team;
-                  if (assignedTeam && teamGroups[assignedTeam]) {
-                    teamGroups[assignedTeam].push(feature);
+                  if (e.currentTarget.id === "left-scroll" && rightScroll) {
+                    rightScroll.scrollTop = scrollTop;
+                  } else if (
+                    e.currentTarget.id === "right-scroll" &&
+                    leftScroll
+                  ) {
+                    leftScroll.scrollTop = scrollTop;
+                  } else if (
+                    e.currentTarget.id === "teams-left-scroll" &&
+                    teamsRightScroll
+                  ) {
+                    teamsRightScroll.scrollTop = scrollTop;
+                  } else if (
+                    e.currentTarget.id === "teams-right-scroll" &&
+                    teamsLeftScroll
+                  ) {
+                    teamsLeftScroll.scrollTop = scrollTop;
                   }
-                });
+                };
 
-                return teamGroups;
-              };
+                const getSizeInfo = (size: string) => {
+                  const sizeColors: Record<string, string> = {
+                    S: "bg-green-100 text-green-800 border-green-300",
+                    M: "bg-blue-100 text-blue-800 border-blue-300",
+                    L: "bg-purple-100 text-purple-800 border-purple-300",
+                    XL: "bg-orange-100 text-orange-800 border-orange-300",
+                    XXL: "bg-red-100 text-red-800 border-red-300",
+                  };
+                  return (
+                    sizeColors[size] ||
+                    "bg-gray-100 text-gray-800 border-gray-300"
+                  );
+                };
 
-              const teamGroups = getFeaturesByTeam();
+                const getStatusIcon = (status: string) => {
+                  switch (status) {
+                    case "completed":
+                      return "✓";
+                    case "in-progress":
+                      return "◐";
+                    case "blocked":
+                      return "⚠";
+                    default:
+                      return "○";
+                  }
+                };
 
-              return (
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-[400px] grid-cols-2 mb-4 ml-4">
-                    <TabsTrigger value="features">Features</TabsTrigger>
-                    <TabsTrigger value="teams">Teams</TabsTrigger>
-                  </TabsList>
+                // Group features by team (including assignment overrides)
+                const getFeaturesByTeam = () => {
+                  const teamGroups: { [key: string]: any[] } = {};
 
-                  <TabsContent value="features">
-                    <div
-                      className="flex"
-                      style={{ maxHeight: "calc(100vh - 240px)" }}
-                    >
-                      {/* Left Section - Feature Names */}
-                      <div className="w-1/3 border-r border-blue-200 bg-blue-50 flex flex-col">
-                        <div className="h-16 px-4 flex items-center justify-between border-b border-blue-200 bg-blue-100 flex-shrink-0">
-                          <h3 className="font-bold text-blue-900">Features</h3>
-                          <span className="text-xs text-blue-600">
-                            Total SP (Consumed/Planned)
-                          </span>
-                        </div>
-                        <div
-                          id="left-scroll"
-                          className="flex-1 overflow-y-auto pb-20"
-                          onScroll={handleScroll}
-                        >
-                          {features.map((feature: any, index: number) => {
-                            // Calculate totals from quarterly data
-                            const totalPlanned = Object.values(
-                              feature.quarterlyConsumption as Record<
-                                string,
-                                any
-                              >
-                            ).reduce(
-                              (sum: number, q: any) => sum + (q?.planned || 0),
-                              0
-                            );
-                            const totalConsumed = Object.values(
-                              feature.quarterlyConsumption as Record<
-                                string,
-                                any
-                              >
-                            ).reduce(
-                              (sum: number, q: any) => sum + (q?.consumed || 0),
-                              0
-                            );
+                  // Initialize all teams
+                  teams.forEach((team) => {
+                    teamGroups[team] = [];
+                  });
 
-                            // Calculate quarter-specific dates for left display
-                            const featureStart = new Date(feature.startDate);
-                            const featureEnd = new Date(feature.endDate);
-                            const quarterStartDates = {
-                              Q1: new Date(year, 0, 1), // Jan 1
-                              Q2: new Date(year, 3, 1), // Apr 1
-                              Q3: new Date(year, 6, 1), // Jul 1
-                              Q4: new Date(year, 9, 1), // Oct 1
-                            };
-                            const quarterEndDates = {
-                              Q1: new Date(year, 2, 31), // Mar 31
-                              Q2: new Date(year, 5, 30), // Jun 30
-                              Q3: new Date(year, 8, 30), // Sep 30
-                              Q4: new Date(year, 11, 31), // Dec 31
-                            };
+                  features.forEach((feature: any) => {
+                    const assignedTeam =
+                      featureAssignments[feature.id]?.team || feature.team;
+                    if (assignedTeam && teamGroups[assignedTeam]) {
+                      teamGroups[assignedTeam].push(feature);
+                    }
+                  });
 
-                            return (
-                              <div
-                                key={feature.id}
-                                className="flex items-center justify-between h-[140px] p-4 border-b border-blue-100 hover:bg-blue-100 transition-colors"
-                              >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-lg">
-                                      {getStatusIcon(feature.status)}
-                                    </span>
-                                    <h4 className="font-semibold text-sm text-blue-900">
-                                      {feature.name}
-                                    </h4>
-                                  </div>
-                                  <div className="flex justify-center">
-                                    <div className="flex items-center gap-2 mb-2 flex-1">
-                                      <Badge
-                                        className={`${getSizeInfo(
-                                          feature.size
-                                        )} text-xs px-2 py-0 border`}
-                                      >
-                                        {feature.size}
-                                      </Badge>
-                                      <span className="text-xs font-bold text-blue-700">
-                                        {totalConsumed}/{totalPlanned} SP
+                  return teamGroups;
+                };
+
+                const teamGroups = getFeaturesByTeam();
+
+                return (
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-[400px] grid-cols-2 mb-4 ml-4">
+                      <TabsTrigger value="features">Features</TabsTrigger>
+                      <TabsTrigger value="teams">Teams</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="features">
+                      <div
+                        className="flex"
+                        style={{ maxHeight: "calc(100vh - 240px)" }}
+                      >
+                        {/* Left Section - Feature Names */}
+                        <div className="w-1/3 border-r border-blue-200 bg-blue-50 flex flex-col">
+                          <div className="h-16 px-4 flex items-center justify-between border-b border-blue-200 bg-blue-100 flex-shrink-0">
+                            <h3 className="font-bold text-blue-900">
+                              Features
+                            </h3>
+                            <span className="text-xs text-blue-600">
+                              Total SP (Consumed/Planned)
+                            </span>
+                          </div>
+                          <div
+                            id="left-scroll"
+                            className="flex-1 overflow-y-auto pb-20"
+                            onScroll={handleScroll}
+                          >
+                            {features.map((feature: any, index: number) => {
+                              // Calculate totals from quarterly data
+                              const totalPlanned = Object.values(
+                                feature.quarterlyConsumption as Record<
+                                  string,
+                                  any
+                                >
+                              ).reduce(
+                                (sum: number, q: any) =>
+                                  sum + (q?.planned || 0),
+                                0
+                              );
+                              const totalConsumed = Object.values(
+                                feature.quarterlyConsumption as Record<
+                                  string,
+                                  any
+                                >
+                              ).reduce(
+                                (sum: number, q: any) =>
+                                  sum + (q?.consumed || 0),
+                                0
+                              );
+
+                              // Calculate quarter-specific dates for left display
+                              const featureStart = new Date(feature.startDate);
+                              const featureEnd = new Date(feature.endDate);
+                              const quarterStartDates = {
+                                Q1: new Date(year, 0, 1), // Jan 1
+                                Q2: new Date(year, 3, 1), // Apr 1
+                                Q3: new Date(year, 6, 1), // Jul 1
+                                Q4: new Date(year, 9, 1), // Oct 1
+                              };
+                              const quarterEndDates = {
+                                Q1: new Date(year, 2, 31), // Mar 31
+                                Q2: new Date(year, 5, 30), // Jun 30
+                                Q3: new Date(year, 8, 30), // Sep 30
+                                Q4: new Date(year, 11, 31), // Dec 31
+                              };
+
+                              return (
+                                <div
+                                  key={feature.id}
+                                  className="flex items-center justify-between h-[140px] p-4 border-b border-blue-100 hover:bg-blue-100 transition-colors"
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-lg">
+                                        {getStatusIcon(feature.status)}
                                       </span>
+                                      <h4 className="font-semibold text-sm text-blue-900">
+                                        {feature.name}
+                                      </h4>
                                     </div>
-                                    {/* Date ranges for each active quarter */}
-                                    {/* <div className="flex flex-wrap gap-1">
+                                    <div className="flex justify-center">
+                                      <div className="flex items-center gap-2 mb-2 flex-1">
+                                        <Badge
+                                          className={`${getSizeInfo(
+                                            feature.size
+                                          )} text-xs px-2 py-0 border`}
+                                        >
+                                          {feature.size}
+                                        </Badge>
+                                        <span className="text-xs font-bold text-blue-700">
+                                          {totalConsumed}/{totalPlanned} SP
+                                        </span>
+                                      </div>
+                                      {/* Date ranges for each active quarter */}
+                                      {/* <div className="flex flex-wrap gap-1">
                                       {["Q1", "Q2", "Q3", "Q4"].map(
                                         (quarter) => {
                                           const qData =
@@ -388,141 +399,537 @@ export default function Dashboard() {
                                         }
                                       )}
                                     </div> */}
-                                  </div>
-
-                                  {/* Assignment Controls */}
-                                  <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-gray-600 w-12">
-                                        Team:
-                                      </span>
-                                      <Select
-                                        value={
-                                          featureAssignments[feature.id]
-                                            ?.team || ""
-                                        }
-                                        onValueChange={(value) =>
-                                          updateFeatureAssignment(
-                                            feature.id,
-                                            "team",
-                                            value
-                                          )
-                                        }
-                                      >
-                                        <SelectTrigger className="h-6 text-xs w-32">
-                                          <SelectValue placeholder="Select team" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {teams.map((team) => (
-                                            <SelectItem
-                                              key={team}
-                                              value={team}
-                                              className="text-xs"
-                                            >
-                                              {team}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-gray-600 w-12">
-                                        Person:
-                                      </span>
-                                      <Select
-                                        value={
-                                          featureAssignments[feature.id]
-                                            ?.assignedTo || ""
-                                        }
-                                        onValueChange={(value) =>
-                                          updateFeatureAssignment(
-                                            feature.id,
-                                            "assignedTo",
-                                            value
-                                          )
-                                        }
-                                      >
-                                        <SelectTrigger className="h-6 text-xs w-32">
-                                          <SelectValue placeholder="Select person" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {people.map((person) => (
-                                            <SelectItem
-                                              key={person}
-                                              value={person}
-                                              className="text-xs"
-                                            >
-                                              {person}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+
+                                    {/* Assignment Controls */}
+                                    <div className="flex flex-col gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-gray-600 w-12">
+                                          Team:
+                                        </span>
+                                        <Select
+                                          value={
+                                            featureAssignments[feature.id]
+                                              ?.team || ""
+                                          }
+                                          onValueChange={(value) =>
+                                            updateFeatureAssignment(
+                                              feature.id,
+                                              "team",
+                                              value
+                                            )
+                                          }
+                                        >
+                                          <SelectTrigger className="h-6 text-xs w-32">
+                                            <SelectValue placeholder="Select team" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {teams.map((team) => (
+                                              <SelectItem
+                                                key={team}
+                                                value={team}
+                                                className="text-xs"
+                                              >
+                                                {team}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-gray-600 w-12">
+                                          Person:
+                                        </span>
+                                        <Select
+                                          value={
+                                            featureAssignments[feature.id]
+                                              ?.assignedTo || ""
+                                          }
+                                          onValueChange={(value) =>
+                                            updateFeatureAssignment(
+                                              feature.id,
+                                              "assignedTo",
+                                              value
+                                            )
+                                          }
+                                        >
+                                          <SelectTrigger className="h-6 text-xs w-32">
+                                            <SelectValue placeholder="Select person" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {people.map((person) => (
+                                              <SelectItem
+                                                key={person}
+                                                value={person}
+                                                className="text-xs"
+                                              >
+                                                {person}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
+
+                          {/* Left Summary Row */}
+                          <div className="h-16 border-t-2 border-blue-300 bg-blue-100 px-4 flex items-center justify-between flex-shrink-0">
+                            <span className="font-bold text-blue-900">
+                              Total Project
+                            </span>
+                            <span className="text-sm font-bold text-blue-700">
+                              {features.reduce(
+                                (sum: number, f: any) =>
+                                  sum +
+                                  Object.values(
+                                    f.quarterlyConsumption as Record<
+                                      string,
+                                      any
+                                    >
+                                  ).reduce(
+                                    (s: number, q: any) =>
+                                      s + (q?.consumed || 0),
+                                    0
+                                  ),
+                                0
+                              )}
+                              /
+                              {features.reduce(
+                                (sum: number, f: any) =>
+                                  sum +
+                                  Object.values(
+                                    f.quarterlyConsumption as Record<
+                                      string,
+                                      any
+                                    >
+                                  ).reduce(
+                                    (s: number, q: any) =>
+                                      s + (q?.planned || 0),
+                                    0
+                                  ),
+                                0
+                              )}{" "}
+                              SP
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Left Summary Row */}
-                        <div className="h-16 border-t-2 border-blue-300 bg-blue-100 px-4 flex items-center justify-between flex-shrink-0">
-                          <span className="font-bold text-blue-900">
-                            Total Project
-                          </span>
-                          <span className="text-sm font-bold text-blue-700">
-                            {features.reduce(
-                              (sum: number, f: any) =>
-                                sum +
-                                Object.values(
-                                  f.quarterlyConsumption as Record<string, any>
-                                ).reduce(
-                                  (s: number, q: any) => s + (q?.consumed || 0),
-                                  0
-                                ),
-                              0
-                            )}
-                            /
-                            {features.reduce(
-                              (sum: number, f: any) =>
-                                sum +
-                                Object.values(
-                                  f.quarterlyConsumption as Record<string, any>
-                                ).reduce(
-                                  (s: number, q: any) => s + (q?.planned || 0),
-                                  0
-                                ),
-                              0
-                            )}{" "}
-                            SP
-                          </span>
+                        {/* Right Section - Timeline Grid */}
+                        <div className="flex-1 bg-white flex flex-col">
+                          {/* Quarter Headers with Totals */}
+                          <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
+                            <div className="flex-1 flex">
+                              {["Q1", "Q2", "Q3", "Q4"].map(
+                                (quarter, index) => {
+                                  // Calculate quarterly totals for this quarter
+                                  const quarterTotal = features.reduce(
+                                    (sum: number, feature: any) => {
+                                      const qData =
+                                        feature.quarterlyConsumption[quarter];
+                                      return sum + (qData ? qData.planned : 0);
+                                    },
+                                    0
+                                  );
+
+                                  const quarterConsumed = features.reduce(
+                                    (sum: number, feature: any) => {
+                                      const qData =
+                                        feature.quarterlyConsumption[quarter];
+                                      return sum + (qData ? qData.consumed : 0);
+                                    },
+                                    0
+                                  );
+
+                                  return (
+                                    <div
+                                      key={quarter}
+                                      className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
+                                    >
+                                      <div className="font-bold text-lg text-blue-900">
+                                        {quarter}
+                                      </div>
+                                      <div className="text-xs text-blue-600">
+                                        {year}
+                                      </div>
+                                      <div className="text-xs font-bold text-blue-900 mt-1">
+                                        {quarterConsumed}/{quarterTotal} SP
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Timeline Grid - Scrollable content */}
+                          <div
+                            id="right-scroll"
+                            className="flex-1 overflow-y-auto pb-20"
+                            onScroll={handleScroll}
+                          >
+                            {features.map((feature: any, index: number) => {
+                              return (
+                                <div
+                                  key={feature.id}
+                                  className="relative h-[140px] border-b border-blue-100 group"
+                                >
+                                  {/* Quarter dividers */}
+                                  <div className="absolute inset-0 flex">
+                                    {[0, 1, 2, 3].map((q) => (
+                                      <div
+                                        key={q}
+                                        className="flex-1 border-r border-blue-100 last:border-r-0"
+                                      />
+                                    ))}
+                                  </div>
+
+                                  {/* Quarter-based bars */}
+                                  <div className="absolute inset-0 flex">
+                                    {["Q1", "Q2", "Q3", "Q4"].map(
+                                      (quarter: any, qIndex) => {
+                                        const qData =
+                                          feature.quarterlyConsumption[quarter];
+                                        if (!qData || qData.planned === 0)
+                                          return (
+                                            <div
+                                              key={quarter}
+                                              className="flex-1"
+                                            />
+                                          );
+
+                                        const hasConsumed = qData.consumed > 0;
+                                        const consumedPercentage =
+                                          qData.planned > 0
+                                            ? (qData.consumed / qData.planned) *
+                                              100
+                                            : 0;
+
+                                        // Calculate quarter date ranges
+                                        const quarterStartDates = {
+                                          Q1: new Date(year, 0, 1), // Jan 1
+                                          Q2: new Date(year, 3, 1), // Apr 1
+                                          Q3: new Date(year, 6, 1), // Jul 1
+                                          Q4: new Date(year, 9, 1), // Oct 1
+                                        };
+
+                                        const quarterEndDates = {
+                                          Q1: new Date(year, 2, 31), // Mar 31
+                                          Q2: new Date(year, 5, 30), // Jun 30
+                                          Q3: new Date(year, 8, 30), // Sep 30
+                                          Q4: new Date(year, 11, 31), // Dec 31
+                                        };
+
+                                        const featureStart = new Date(
+                                          feature.startDate
+                                        );
+                                        const featureEnd = new Date(
+                                          feature.endDate
+                                        );
+                                        const quarterStart =
+                                          quarterStartDates[quarter];
+                                        const quarterEnd =
+                                          quarterEndDates[quarter];
+
+                                        // Calculate actual start and end dates for this quarter
+                                        const actualStartInQuarter =
+                                          featureStart > quarterStart
+                                            ? featureStart
+                                            : quarterStart;
+                                        const actualEndInQuarter =
+                                          featureEnd < quarterEnd
+                                            ? featureEnd
+                                            : quarterEnd;
+
+                                        // Check if feature is active in this quarter
+                                        const isActiveInQuarter =
+                                          featureStart <= quarterEnd &&
+                                          featureEnd >= quarterStart;
+
+                                        return (
+                                          <div
+                                            key={quarter}
+                                            className="flex-1 relative flex items-center justify-center p-4"
+                                          >
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <div className="relative w-full h-12">
+                                                    {/* Planned bar (lighter shade) */}
+                                                    <div
+                                                      className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
+                                                        feature.status ===
+                                                        "completed"
+                                                          ? "bg-green-100 border-green-300"
+                                                          : feature.status ===
+                                                            "in-progress"
+                                                          ? "bg-yellow-100 border-yellow-300"
+                                                          : feature.status ===
+                                                            "blocked"
+                                                          ? "bg-red-100 border-red-300"
+                                                          : "bg-blue-100 border-blue-300"
+                                                      }`}
+                                                    >
+                                                      {/* Consumed bar (darker shade) */}
+                                                      {hasConsumed && (
+                                                        <div
+                                                          className={`absolute h-full rounded-lg shadow-md ${
+                                                            feature.status ===
+                                                            "completed"
+                                                              ? "bg-green-500"
+                                                              : feature.status ===
+                                                                "in-progress"
+                                                              ? "bg-yellow-500"
+                                                              : feature.status ===
+                                                                "blocked"
+                                                              ? "bg-red-500"
+                                                              : "bg-blue-500"
+                                                          }`}
+                                                          style={{
+                                                            width: `${consumedPercentage}%`,
+                                                          }}
+                                                        />
+                                                      )}
+
+                                                      {/* Story points text */}
+                                                      <div className="absolute inset-0 flex items-center justify-center">
+                                                        <span className="text-sm font-bold text-gray-800 drop-shadow-sm">
+                                                          {qData.consumed > 0
+                                                            ? `${qData.consumed}/${qData.planned}`
+                                                            : qData.planned}{" "}
+                                                          SP
+                                                        </span>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  <div className="text-sm">
+                                                    <p className="font-semibold">
+                                                      {feature.name} - {quarter}
+                                                    </p>
+                                                    <p>
+                                                      Planned: {qData.planned}{" "}
+                                                      SP
+                                                    </p>
+                                                    <p>
+                                                      Consumed: {qData.consumed}{" "}
+                                                      SP
+                                                    </p>
+                                                    <p>
+                                                      Remaining:{" "}
+                                                      {qData.planned -
+                                                        qData.consumed}{" "}
+                                                      SP
+                                                    </p>
+                                                    <p>
+                                                      Progress:{" "}
+                                                      {consumedPercentage.toFixed(
+                                                        0
+                                                      )}
+                                                      %
+                                                    </p>
+                                                    {isActiveInQuarter && (
+                                                      <>
+                                                        <hr className="my-1" />
+                                                        <p>
+                                                          Quarter Start:{" "}
+                                                          {actualStartInQuarter.toLocaleDateString()}
+                                                        </p>
+                                                        <p>
+                                                          Quarter End:{" "}
+                                                          {actualEndInQuarter.toLocaleDateString()}
+                                                        </p>
+                                                        <p>
+                                                          Feature Duration:{" "}
+                                                          {featureStart.toLocaleDateString()}{" "}
+                                                          -{" "}
+                                                          {featureEnd.toLocaleDateString()}
+                                                        </p>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          </div>
+                                        );
+                                      }
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
+                    </TabsContent>
 
-                      {/* Right Section - Timeline Grid */}
-                      <div className="flex-1 bg-white flex flex-col">
-                        {/* Quarter Headers with Totals */}
-                        <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
-                          <div className="flex-1 flex">
-                            {["Q1", "Q2", "Q3", "Q4"].map((quarter, index) => {
-                              // Calculate quarterly totals for this quarter
-                              const quarterTotal = features.reduce(
+                    <TabsContent value="teams">
+                      <div
+                        className="flex"
+                        style={{ maxHeight: "calc(100vh - 240px)" }}
+                      >
+                        {/* Left Section - Team Names */}
+                        <div className="w-1/3 border-r border-blue-200 bg-blue-50 flex flex-col">
+                          <div className="h-16 px-4 flex items-center justify-between border-b border-blue-200 bg-blue-100 flex-shrink-0">
+                            <h3 className="font-bold text-blue-900">Teams</h3>
+                            <span className="text-xs text-blue-600">
+                              Features & SP
+                            </span>
+                          </div>
+                          <div
+                            id="teams-left-scroll"
+                            className="flex-1 overflow-y-auto pb-20"
+                            onScroll={handleScroll}
+                          >
+                            {teams.map((teamName) => {
+                              const teamFeatures = teamGroups[teamName] || [];
+                              const teamTotalPlanned = teamFeatures.reduce(
                                 (sum: number, feature: any) => {
+                                  return (
+                                    sum +
+                                    Object.values(
+                                      feature.quarterlyConsumption as Record<
+                                        string,
+                                        any
+                                      >
+                                    ).reduce(
+                                      (s: number, q: any) =>
+                                        s + (q?.planned || 0),
+                                      0
+                                    )
+                                  );
+                                },
+                                0
+                              );
+                              const teamTotalConsumed = teamFeatures.reduce(
+                                (sum: number, feature: any) => {
+                                  return (
+                                    sum +
+                                    Object.values(
+                                      feature.quarterlyConsumption as Record<
+                                        string,
+                                        any
+                                      >
+                                    ).reduce(
+                                      (s: number, q: any) =>
+                                        s + (q?.consumed || 0),
+                                      0
+                                    )
+                                  );
+                                },
+                                0
+                              );
+
+                              return (
+                                <div
+                                  key={teamName}
+                                  className="border-b border-blue-100"
+                                >
+                                  {/* Team Header */}
+                                  <div className="h-[60px] p-4 bg-blue-100 border-b border-blue-200">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-bold text-blue-900">
+                                        {teamName}
+                                      </h4>
+                                      <span className="text-xs font-bold text-blue-700">
+                                        {teamTotalConsumed}/{teamTotalPlanned}{" "}
+                                        SP
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-blue-600 mt-1">
+                                      {teamFeatures.length} feature
+                                      {teamFeatures.length !== 1 ? "s" : ""}
+                                    </div>
+                                  </div>
+
+                                  {/* Team Features */}
+                                  {teamFeatures.map((feature: any) => {
+                                    const totalPlanned = Object.values(
+                                      feature.quarterlyConsumption as Record<
+                                        string,
+                                        any
+                                      >
+                                    ).reduce(
+                                      (sum: number, q: any) =>
+                                        sum + (q?.planned || 0),
+                                      0
+                                    );
+                                    const totalConsumed = Object.values(
+                                      feature.quarterlyConsumption as Record<
+                                        string,
+                                        any
+                                      >
+                                    ).reduce(
+                                      (sum: number, q: any) =>
+                                        sum + (q?.consumed || 0),
+                                      0
+                                    );
+
+                                    return (
+                                      <div
+                                        key={feature.id}
+                                        className="h-[100px] p-3 border-b border-blue-50 hover:bg-blue-50 transition-colors ml-4"
+                                      >
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className="text-sm">
+                                            {getStatusIcon(feature.status)}
+                                          </span>
+                                          <h5 className="font-medium text-xs text-blue-800">
+                                            {feature.name}
+                                          </h5>
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <Badge
+                                            className={`${getSizeInfo(
+                                              feature.size
+                                            )} text-xs px-1 py-0 border`}
+                                          >
+                                            {feature.size}
+                                          </Badge>
+                                          <span className="text-xs font-bold text-blue-600">
+                                            {totalConsumed}/{totalPlanned} SP
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          Assigned:{" "}
+                                          {featureAssignments[feature.id]
+                                            ?.assignedTo || feature.assignedTo}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Right Section - Timeline Grid (same as Features tab) */}
+                        <div className="flex-1 bg-white flex flex-col">
+                          {/* Quarter Headers with Totals */}
+                          <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
+                            {["Q1", "Q2", "Q3", "Q4"].map((quarter) => {
+                              // Calculate quarterly totals across all teams
+                              const quarterTotal = Object.values(teamGroups)
+                                .flat()
+                                .reduce((sum: number, feature: any) => {
                                   const qData =
                                     feature.quarterlyConsumption[quarter];
                                   return sum + (qData ? qData.planned : 0);
-                                },
-                                0
-                              );
+                                }, 0);
 
-                              const quarterConsumed = features.reduce(
-                                (sum: number, feature: any) => {
+                              const quarterConsumed = Object.values(teamGroups)
+                                .flat()
+                                .reduce((sum: number, feature: any) => {
                                   const qData =
                                     feature.quarterlyConsumption[quarter];
                                   return sum + (qData ? qData.consumed : 0);
-                                },
-                                0
-                              );
+                                }, 0);
 
                               return (
                                 <div
@@ -542,549 +949,175 @@ export default function Dashboard() {
                               );
                             })}
                           </div>
-                        </div>
 
-                        {/* Timeline Grid - Scrollable content */}
-                        <div
-                          id="right-scroll"
-                          className="flex-1 overflow-y-auto pb-20"
-                          onScroll={handleScroll}
-                        >
-                          {features.map((feature: any, index: number) => {
-                            return (
-                              <div
-                                key={feature.id}
-                                className="relative h-[140px] border-b border-blue-100 group"
-                              >
-                                {/* Quarter dividers */}
-                                <div className="absolute inset-0 flex">
-                                  {[0, 1, 2, 3].map((q) => (
-                                    <div
-                                      key={q}
-                                      className="flex-1 border-r border-blue-100 last:border-r-0"
-                                    />
-                                  ))}
-                                </div>
+                          {/* Teams Timeline Grid - Scrollable content */}
+                          <div
+                            id="teams-right-scroll"
+                            className="flex-1 overflow-y-auto pb-1"
+                            onScroll={handleScroll}
+                          >
+                            {teams.map((teamName) => {
+                              const teamFeatures = teamGroups[teamName] || [];
 
-                                {/* Quarter-based bars */}
-                                <div className="absolute inset-0 flex">
-                                  {["Q1", "Q2", "Q3", "Q4"].map(
-                                    (quarter: any, qIndex) => {
-                                      const qData =
-                                        feature.quarterlyConsumption[quarter];
-                                      if (!qData || qData.planned === 0)
-                                        return (
-                                          <div
-                                            key={quarter}
-                                            className="flex-1"
-                                          />
-                                        );
-
-                                      const hasConsumed = qData.consumed > 0;
-                                      const consumedPercentage =
-                                        qData.planned > 0
-                                          ? (qData.consumed / qData.planned) *
-                                            100
-                                          : 0;
-
-                                      // Calculate quarter date ranges
-                                      const quarterStartDates = {
-                                        Q1: new Date(year, 0, 1), // Jan 1
-                                        Q2: new Date(year, 3, 1), // Apr 1
-                                        Q3: new Date(year, 6, 1), // Jul 1
-                                        Q4: new Date(year, 9, 1), // Oct 1
-                                      };
-
-                                      const quarterEndDates = {
-                                        Q1: new Date(year, 2, 31), // Mar 31
-                                        Q2: new Date(year, 5, 30), // Jun 30
-                                        Q3: new Date(year, 8, 30), // Sep 30
-                                        Q4: new Date(year, 11, 31), // Dec 31
-                                      };
-
-                                      const featureStart = new Date(
-                                        feature.startDate
-                                      );
-                                      const featureEnd = new Date(
-                                        feature.endDate
-                                      );
-                                      const quarterStart =
-                                        quarterStartDates[quarter];
-                                      const quarterEnd =
-                                        quarterEndDates[quarter];
-
-                                      // Calculate actual start and end dates for this quarter
-                                      const actualStartInQuarter =
-                                        featureStart > quarterStart
-                                          ? featureStart
-                                          : quarterStart;
-                                      const actualEndInQuarter =
-                                        featureEnd < quarterEnd
-                                          ? featureEnd
-                                          : quarterEnd;
-
-                                      // Check if feature is active in this quarter
-                                      const isActiveInQuarter =
-                                        featureStart <= quarterEnd &&
-                                        featureEnd >= quarterStart;
-
-                                      return (
-                                        <div
-                                          key={quarter}
-                                          className="flex-1 relative flex items-center justify-center p-4"
-                                        >
-                                          <TooltipProvider>
-                                            <Tooltip>
-                                              <TooltipTrigger asChild>
-                                                <div className="relative w-full h-12">
-                                                  {/* Planned bar (lighter shade) */}
-                                                  <div
-                                                    className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
-                                                      feature.status ===
-                                                      "completed"
-                                                        ? "bg-green-100 border-green-300"
-                                                        : feature.status ===
-                                                          "in-progress"
-                                                        ? "bg-yellow-100 border-yellow-300"
-                                                        : feature.status ===
-                                                          "blocked"
-                                                        ? "bg-red-100 border-red-300"
-                                                        : "bg-blue-100 border-blue-300"
-                                                    }`}
-                                                  >
-                                                    {/* Consumed bar (darker shade) */}
-                                                    {hasConsumed && (
-                                                      <div
-                                                        className={`absolute h-full rounded-lg shadow-md ${
-                                                          feature.status ===
-                                                          "completed"
-                                                            ? "bg-green-500"
-                                                            : feature.status ===
-                                                              "in-progress"
-                                                            ? "bg-yellow-500"
-                                                            : feature.status ===
-                                                              "blocked"
-                                                            ? "bg-red-500"
-                                                            : "bg-blue-500"
-                                                        }`}
-                                                        style={{
-                                                          width: `${consumedPercentage}%`,
-                                                        }}
-                                                      />
-                                                    )}
-
-                                                    {/* Story points text */}
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                      <span className="text-sm font-bold text-gray-800 drop-shadow-sm">
-                                                        {qData.consumed > 0
-                                                          ? `${qData.consumed}/${qData.planned}`
-                                                          : qData.planned}{" "}
-                                                        SP
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              </TooltipTrigger>
-                                              <TooltipContent>
-                                                <div className="text-sm">
-                                                  <p className="font-semibold">
-                                                    {feature.name} - {quarter}
-                                                  </p>
-                                                  <p>
-                                                    Planned: {qData.planned} SP
-                                                  </p>
-                                                  <p>
-                                                    Consumed: {qData.consumed}{" "}
-                                                    SP
-                                                  </p>
-                                                  <p>
-                                                    Remaining:{" "}
-                                                    {qData.planned -
-                                                      qData.consumed}{" "}
-                                                    SP
-                                                  </p>
-                                                  <p>
-                                                    Progress:{" "}
-                                                    {consumedPercentage.toFixed(
-                                                      0
-                                                    )}
-                                                    %
-                                                  </p>
-                                                  {isActiveInQuarter && (
-                                                    <>
-                                                      <hr className="my-1" />
-                                                      <p>
-                                                        Quarter Start:{" "}
-                                                        {actualStartInQuarter.toLocaleDateString()}
-                                                      </p>
-                                                      <p>
-                                                        Quarter End:{" "}
-                                                        {actualEndInQuarter.toLocaleDateString()}
-                                                      </p>
-                                                      <p>
-                                                        Feature Duration:{" "}
-                                                        {featureStart.toLocaleDateString()}{" "}
-                                                        -{" "}
-                                                        {featureEnd.toLocaleDateString()}
-                                                      </p>
-                                                    </>
-                                                  )}
-                                                </div>
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </TooltipProvider>
-                                        </div>
-                                      );
-                                    }
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="teams">
-                    <div
-                      className="flex"
-                      style={{ maxHeight: "calc(100vh - 240px)" }}
-                    >
-                      {/* Left Section - Team Names */}
-                      <div className="w-1/3 border-r border-blue-200 bg-blue-50 flex flex-col">
-                        <div className="h-16 px-4 flex items-center justify-between border-b border-blue-200 bg-blue-100 flex-shrink-0">
-                          <h3 className="font-bold text-blue-900">Teams</h3>
-                          <span className="text-xs text-blue-600">
-                            Features & SP
-                          </span>
-                        </div>
-                        <div
-                          id="teams-left-scroll"
-                          className="flex-1 overflow-y-auto pb-20"
-                          onScroll={handleScroll}
-                        >
-                          {teams.map((teamName) => {
-                            const teamFeatures = teamGroups[teamName] || [];
-                            const teamTotalPlanned = teamFeatures.reduce(
-                              (sum: number, feature: any) => {
-                                return (
-                                  sum +
-                                  Object.values(
-                                    feature.quarterlyConsumption as Record<
-                                      string,
-                                      any
-                                    >
-                                  ).reduce(
-                                    (s: number, q: any) =>
-                                      s + (q?.planned || 0),
-                                    0
-                                  )
-                                );
-                              },
-                              0
-                            );
-                            const teamTotalConsumed = teamFeatures.reduce(
-                              (sum: number, feature: any) => {
-                                return (
-                                  sum +
-                                  Object.values(
-                                    feature.quarterlyConsumption as Record<
-                                      string,
-                                      any
-                                    >
-                                  ).reduce(
-                                    (s: number, q: any) =>
-                                      s + (q?.consumed || 0),
-                                    0
-                                  )
-                                );
-                              },
-                              0
-                            );
-
-                            return (
-                              <div
-                                key={teamName}
-                                className="border-b border-blue-100"
-                              >
-                                {/* Team Header */}
-                                <div className="h-[60px] p-4 bg-blue-100 border-b border-blue-200">
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="font-bold text-blue-900">
-                                      {teamName}
-                                    </h4>
-                                    <span className="text-xs font-bold text-blue-700">
-                                      {teamTotalConsumed}/{teamTotalPlanned} SP
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    {teamFeatures.length} feature
-                                    {teamFeatures.length !== 1 ? "s" : ""}
-                                  </div>
-                                </div>
-
-                                {/* Team Features */}
-                                {teamFeatures.map((feature: any) => {
-                                  const totalPlanned = Object.values(
-                                    feature.quarterlyConsumption as Record<
-                                      string,
-                                      any
-                                    >
-                                  ).reduce(
-                                    (sum: number, q: any) =>
-                                      sum + (q?.planned || 0),
-                                    0
-                                  );
-                                  const totalConsumed = Object.values(
-                                    feature.quarterlyConsumption as Record<
-                                      string,
-                                      any
-                                    >
-                                  ).reduce(
-                                    (sum: number, q: any) =>
-                                      sum + (q?.consumed || 0),
-                                    0
-                                  );
-
-                                  return (
-                                    <div
-                                      key={feature.id}
-                                      className="h-[100px] p-3 border-b border-blue-50 hover:bg-blue-50 transition-colors ml-4"
-                                    >
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sm">
-                                          {getStatusIcon(feature.status)}
-                                        </span>
-                                        <h5 className="font-medium text-xs text-blue-800">
-                                          {feature.name}
-                                        </h5>
-                                      </div>
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <Badge
-                                          className={`${getSizeInfo(
-                                            feature.size
-                                          )} text-xs px-1 py-0 border`}
-                                        >
-                                          {feature.size}
-                                        </Badge>
-                                        <span className="text-xs font-bold text-blue-600">
-                                          {totalConsumed}/{totalPlanned} SP
-                                        </span>
-                                      </div>
-                                      <div className="text-xs text-gray-600">
-                                        Assigned:{" "}
-                                        {featureAssignments[feature.id]
-                                          ?.assignedTo || feature.assignedTo}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Right Section - Timeline Grid (same as Features tab) */}
-                      <div className="flex-1 bg-white flex flex-col">
-                        {/* Quarter Headers with Totals */}
-                        <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
-                          {["Q1", "Q2", "Q3", "Q4"].map((quarter) => {
-                            // Calculate quarterly totals across all teams
-                            const quarterTotal = Object.values(teamGroups)
-                              .flat()
-                              .reduce((sum: number, feature: any) => {
-                                const qData =
-                                  feature.quarterlyConsumption[quarter];
-                                return sum + (qData ? qData.planned : 0);
-                              }, 0);
-
-                            const quarterConsumed = Object.values(teamGroups)
-                              .flat()
-                              .reduce((sum: number, feature: any) => {
-                                const qData =
-                                  feature.quarterlyConsumption[quarter];
-                                return sum + (qData ? qData.consumed : 0);
-                              }, 0);
-
-                            return (
-                              <div
-                                key={quarter}
-                                className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
-                              >
-                                <div className="font-bold text-lg text-blue-900">
-                                  {quarter}
-                                </div>
-                                <div className="text-xs text-blue-600">
-                                  {year}
-                                </div>
-                                <div className="text-xs font-bold text-blue-900 mt-1">
-                                  {quarterConsumed}/{quarterTotal} SP
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Teams Timeline Grid - Scrollable content */}
-                        <div
-                          id="teams-right-scroll"
-                          className="flex-1 overflow-y-auto pb-1"
-                          onScroll={handleScroll}
-                        >
-                          {teams.map((teamName) => {
-                            const teamFeatures = teamGroups[teamName] || [];
-
-                            return (
-                              <div key={teamName}>
-                                {/* Team Header Row */}
-                                <div className="relative h-[60px] border-b border-blue-200 bg-blue-100">
-                                  <div className="absolute inset-0 flex">
-                                    {[0, 1, 2, 3].map((q) => (
-                                      <div
-                                        key={q}
-                                        className="flex-1 border-r border-blue-200 last:border-r-0"
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Team Features Rows */}
-                                {teamFeatures.map((feature: any) => (
-                                  <div
-                                    key={feature.id}
-                                    className="relative h-[100px] border-b border-blue-50 group"
-                                  >
-                                    {/* Quarter dividers */}
+                              return (
+                                <div key={teamName}>
+                                  {/* Team Header Row */}
+                                  <div className="relative h-[60px] border-b border-blue-200 bg-blue-100">
                                     <div className="absolute inset-0 flex">
                                       {[0, 1, 2, 3].map((q) => (
                                         <div
                                           key={q}
-                                          className="flex-1 border-r border-blue-100 last:border-r-0"
+                                          className="flex-1 border-r border-blue-200 last:border-r-0"
                                         />
                                       ))}
                                     </div>
+                                  </div>
 
-                                    {/* Quarter-based bars (same logic as Features tab) */}
-                                    <div className="absolute inset-0 flex">
-                                      {["Q1", "Q2", "Q3", "Q4"].map(
-                                        (quarter: any, qIndex) => {
-                                          const qData =
-                                            feature.quarterlyConsumption[
-                                              quarter
-                                            ];
-                                          if (!qData || qData.planned === 0)
+                                  {/* Team Features Rows */}
+                                  {teamFeatures.map((feature: any) => (
+                                    <div
+                                      key={feature.id}
+                                      className="relative h-[100px] border-b border-blue-50 group"
+                                    >
+                                      {/* Quarter dividers */}
+                                      <div className="absolute inset-0 flex">
+                                        {[0, 1, 2, 3].map((q) => (
+                                          <div
+                                            key={q}
+                                            className="flex-1 border-r border-blue-100 last:border-r-0"
+                                          />
+                                        ))}
+                                      </div>
+
+                                      {/* Quarter-based bars (same logic as Features tab) */}
+                                      <div className="absolute inset-0 flex">
+                                        {["Q1", "Q2", "Q3", "Q4"].map(
+                                          (quarter: any, qIndex) => {
+                                            const qData =
+                                              feature.quarterlyConsumption[
+                                                quarter
+                                              ];
+                                            if (!qData || qData.planned === 0)
+                                              return (
+                                                <div
+                                                  key={quarter}
+                                                  className="flex-1"
+                                                />
+                                              );
+
+                                            // Same bar rendering logic as Features tab
+                                            const consumedPercentage =
+                                              qData.planned > 0
+                                                ? (qData.consumed /
+                                                    qData.planned) *
+                                                  100
+                                                : 0;
+
                                             return (
                                               <div
                                                 key={quarter}
-                                                className="flex-1"
-                                              />
-                                            );
-
-                                          // Same bar rendering logic as Features tab
-                                          const consumedPercentage =
-                                            qData.planned > 0
-                                              ? (qData.consumed /
-                                                  qData.planned) *
-                                                100
-                                              : 0;
-
-                                          return (
-                                            <div
-                                              key={quarter}
-                                              className="flex-1 p-4"
-                                            >
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <div className="relative h-full">
-                                                      <div
-                                                        className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
-                                                          feature.status ===
-                                                          "completed"
-                                                            ? "bg-green-100 border-green-300"
-                                                            : feature.status ===
-                                                              "in-progress"
-                                                            ? "bg-yellow-100 border-yellow-300"
-                                                            : feature.status ===
-                                                              "blocked"
-                                                            ? "bg-red-100 border-red-300"
-                                                            : "bg-blue-100 border-blue-300"
-                                                        }`}
-                                                      >
-                                                        {qData.consumed > 0 && (
-                                                          <div
-                                                            className={`absolute h-full rounded-lg shadow-md ${
-                                                              feature.status ===
-                                                              "completed"
-                                                                ? "bg-green-500"
-                                                                : feature.status ===
-                                                                  "in-progress"
-                                                                ? "bg-yellow-500"
-                                                                : feature.status ===
-                                                                  "blocked"
-                                                                ? "bg-red-500"
-                                                                : "bg-blue-500"
-                                                            }`}
-                                                            style={{
-                                                              width: `${consumedPercentage}%`,
-                                                            }}
-                                                          />
-                                                        )}
-                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                          <span className="text-xs font-bold text-gray-800 drop-shadow-sm">
-                                                            {qData.consumed > 0
-                                                              ? `${qData.consumed}/${qData.planned}`
-                                                              : qData.planned}{" "}
-                                                            SP
-                                                          </span>
+                                                className="flex-1 p-4"
+                                              >
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <div className="relative h-full">
+                                                        <div
+                                                          className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
+                                                            feature.status ===
+                                                            "completed"
+                                                              ? "bg-green-100 border-green-300"
+                                                              : feature.status ===
+                                                                "in-progress"
+                                                              ? "bg-yellow-100 border-yellow-300"
+                                                              : feature.status ===
+                                                                "blocked"
+                                                              ? "bg-red-100 border-red-300"
+                                                              : "bg-blue-100 border-blue-300"
+                                                          }`}
+                                                        >
+                                                          {qData.consumed >
+                                                            0 && (
+                                                            <div
+                                                              className={`absolute h-full rounded-lg shadow-md ${
+                                                                feature.status ===
+                                                                "completed"
+                                                                  ? "bg-green-500"
+                                                                  : feature.status ===
+                                                                    "in-progress"
+                                                                  ? "bg-yellow-500"
+                                                                  : feature.status ===
+                                                                    "blocked"
+                                                                  ? "bg-red-500"
+                                                                  : "bg-blue-500"
+                                                              }`}
+                                                              style={{
+                                                                width: `${consumedPercentage}%`,
+                                                              }}
+                                                            />
+                                                          )}
+                                                          <div className="absolute inset-0 flex items-center justify-center">
+                                                            <span className="text-xs font-bold text-gray-800 drop-shadow-sm">
+                                                              {qData.consumed >
+                                                              0
+                                                                ? `${qData.consumed}/${qData.planned}`
+                                                                : qData.planned}{" "}
+                                                              SP
+                                                            </span>
+                                                          </div>
                                                         </div>
                                                       </div>
-                                                    </div>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent>
-                                                    <div className="text-sm">
-                                                      <p className="font-semibold">
-                                                        {feature.name} -{" "}
-                                                        {quarter}
-                                                      </p>
-                                                      <p>
-                                                        Planned: {qData.planned}{" "}
-                                                        SP
-                                                      </p>
-                                                      <p>
-                                                        Consumed:{" "}
-                                                        {qData.consumed} SP
-                                                      </p>
-                                                      <p>
-                                                        Progress:{" "}
-                                                        {consumedPercentage.toFixed(
-                                                          0
-                                                        )}
-                                                        %
-                                                      </p>
-                                                    </div>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                            </div>
-                                          );
-                                        }
-                                      )}
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      <div className="text-sm">
+                                                        <p className="font-semibold">
+                                                          {feature.name} -{" "}
+                                                          {quarter}
+                                                        </p>
+                                                        <p>
+                                                          Planned:{" "}
+                                                          {qData.planned} SP
+                                                        </p>
+                                                        <p>
+                                                          Consumed:{" "}
+                                                          {qData.consumed} SP
+                                                        </p>
+                                                        <p>
+                                                          Progress:{" "}
+                                                          {consumedPercentage.toFixed(
+                                                            0
+                                                          )}
+                                                          %
+                                                        </p>
+                                                      </div>
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                              </div>
+                                            );
+                                          }
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          })}
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              );
-            })()}
+                    </TabsContent>
+                  </Tabs>
+                );
+              })()
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                <p>
+                  No prediction data available. Please submit a form to see the
+                  timeline.
+                </p>
+              </div>
+            )}
 
             {/* Legend */}
             <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-200">
@@ -1129,6 +1162,39 @@ export default function Dashboard() {
         <div className="my-5">
           <FeatureTracker />
         </div>
+
+        {/* API Response Display */}
+        {predictionData && (
+          <Card className="bg-white border border-green-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-8 overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </div>
+                </div>
+                <span className="text-green-900">Prediction Response</span>
+                <div className="ml-auto">
+                  <Button
+                    onClick={clearData}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-500 hover:text-red-700 border-red-300"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
+                <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {JSON.stringify(predictionData, null, 2)}
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

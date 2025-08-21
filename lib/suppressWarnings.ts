@@ -1,7 +1,7 @@
 // Suppress React defaultProps warnings from third-party libraries
-if (typeof window !== 'undefined') {
-  const originalWarn = console.warn;
-  const originalError = console.error;
+// Run immediately when loaded
+const originalWarn = console.warn;
+const originalError = console.error;
   
   console.warn = (...args) => {
     const message = args.join(' ');
@@ -41,7 +41,10 @@ if (typeof window !== 'undefined') {
     
     // Suppress Next.js hydration warnings for development
     if (message.includes('Extra attributes from the server') ||
-        message.includes('Prop `') && message.includes('did not match')) {
+        message.includes('data-sharkid') ||
+        message.includes('data-ad-block') ||
+        message.includes('data-extension') ||
+        (message.includes('Prop `') && message.includes('did not match'))) {
       return;
     }
     
@@ -57,7 +60,16 @@ if (typeof window !== 'undefined') {
       return;
     }
     
+    // Suppress hydration warnings
+    if (message.includes('Extra attributes from the server') ||
+        message.includes('data-sharkid') ||
+        message.includes('data-ad-block') ||
+        message.includes('data-extension') ||
+        message.includes('at select') ||
+        message.includes('Warning: Prop')) {
+      return;
+    }
+    
     // Call original console.error for all other errors
     originalError.apply(console, args);
   };
-}

@@ -24,11 +24,13 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import { usePredictionStore } from "@/lib/store";
 
 export default function ResourceAllocation() {
-  // Load data from JSON
-  const timelineData = require("@/lib/featureTimelinelatest.json");
-  const { projectEstimation, features } = timelineData;
+  // Load data from Zustand store
+  const { predictionData } = usePredictionStore();
+  const projectEstimation = predictionData?.projectEstimation;
+  const features = predictionData?.features || [];
 
   // Calculate team workload
   const calculateTeamWorkload = () => {
@@ -130,39 +132,41 @@ export default function ResourceAllocation() {
   };
 
   // Resource allocation data for charts
-  const resourceAllocationData = [
+  const resourceAllocationData = projectEstimation?.resourceAllocation ? [
     {
       name: "Development",
-      value: projectEstimation.resourceAllocation.developmentEffort,
+      value: parseInt(projectEstimation.resourceAllocation.developmentEffort) || 60,
       color: "#3b82f6",
     },
     {
       name: "Testing",
-      value: projectEstimation.resourceAllocation.testingEffort,
+      value: parseInt(projectEstimation.resourceAllocation.testingEffort) || 30,
       color: "#10b981",
     },
     {
       name: "Management",
-      value: projectEstimation.resourceAllocation.managementEffort,
+      value: parseInt(projectEstimation.resourceAllocation.managementEffort) || 10,
       color: "#f59e0b",
     },
+  ] : [
+    { name: "Development", value: 60, color: "#3b82f6" },
+    { name: "Testing", value: 30, color: "#10b981" },
+    { name: "Management", value: 10, color: "#f59e0b" },
   ];
 
   // Team composition data
-  const teamCompositionData = Object.entries(
-    projectEstimation.teamComposition
-  ).map(([role, count]) => ({
-    role:
-      role.charAt(0).toUpperCase() + role.slice(1).replace(/([A-Z])/g, " $1"),
-    count: count as number,
-    percentage: Math.round(
-      ((count as number) /
-        Object.values(
-          projectEstimation.teamComposition as Record<string, any>
-        ).reduce((a: number, b: any) => a + (b || 0), 0)) *
-        100
-    ),
-  }));
+  const teamCompositionData = projectEstimation?.teamComposition 
+    ? Object.entries(projectEstimation.teamComposition).map(([role, count]) => {
+        const numCount = parseInt(count as string) || 0;
+        const total = Object.values(projectEstimation.teamComposition as Record<string, any>)
+          .reduce((a: number, b: any) => a + (parseInt(b as string) || 0), 0);
+        return {
+          role: role.charAt(0).toUpperCase() + role.slice(1).replace(/([A-Z])/g, " $1"),
+          count: numCount,
+          percentage: total > 0 ? Math.round((numCount / total) * 100) : 0,
+        };
+      })
+    : [];
 
   const teamWorkload = calculateTeamWorkload();
   const individualWorkload = calculateIndividualWorkload();
@@ -184,6 +188,7 @@ export default function ResourceAllocation() {
     };
     return colors[team] || "#6b7280";
   };
+
 
   return (
     <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl">
@@ -207,9 +212,10 @@ export default function ResourceAllocation() {
               <p className="text-sm text-blue-600 font-medium">Total Team</p>
             </div>
             <p className="text-2xl font-bold text-blue-700">
-              {Object.values(
-                projectEstimation.teamComposition as Record<string, any>
-              ).reduce((a: number, b: any) => a + (b || 0), 0)}
+              {projectEstimation?.teamComposition 
+                ? Object.values(projectEstimation.teamComposition as Record<string, any>)
+                    .reduce((a: number, b: any) => a + (parseInt(b as string) || 0), 0)
+                : 0}
             </p>
             <p className="text-xs text-blue-500 mt-1">Members</p>
           </div>
@@ -222,7 +228,7 @@ export default function ResourceAllocation() {
               </p>
             </div>
             <p className="text-2xl font-bold text-green-700">
-              {projectEstimation.sprintConfiguration.sprintVelocity}
+              {projectEstimation?.sprintConfiguration?.sprintVelocity || 10}
             </p>
             <p className="text-xs text-green-500 mt-1">SP per sprint</p>
           </div>
@@ -235,7 +241,7 @@ export default function ResourceAllocation() {
               </p>
             </div>
             <p className="text-2xl font-bold text-purple-700">
-              {projectEstimation.sprintConfiguration.sprintSize}
+              {projectEstimation?.sprintConfiguration?.sprintSize || 2}
             </p>
             <p className="text-xs text-purple-500 mt-1">Weeks</p>
           </div>
@@ -248,10 +254,10 @@ export default function ResourceAllocation() {
               </p>
             </div>
             <p className="text-2xl font-bold text-orange-700">
-              {projectEstimation.tshirtSize}
+              {projectEstimation?.tshirtSize || 'M'}
             </p>
             <p className="text-xs text-orange-500 mt-1">
-              {projectEstimation.totalProjectSP} SP
+              {projectEstimation?.totalProjectSP || 0} SP
             </p>
           </div>
         </div>

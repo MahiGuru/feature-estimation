@@ -23,7 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit, Eye, BarChart3, Filter, Search, Plus } from "lucide-react";
-// import { dummyFeatures } from '@/lib/dummyData';
+import { usePredictionStore } from "@/lib/store";
 
 interface Feature {
   id: string;
@@ -42,10 +42,12 @@ interface Feature {
 }
 
 export default function FeatureTracker() {
-  // Load features from JSON and normalize status values
+  const { predictionData } = usePredictionStore();
+  
+  // Load features from Zustand store and normalize status values
   const loadFeatures = () => {
-    const timelineData = require("@/lib/featureTimelinelatest.json");
-    return timelineData.features.map((feature: any) => ({
+    if (!predictionData || !predictionData.features) return [];
+    return predictionData.features.map((feature: any) => ({
       ...feature,
       // Map status values to match Feature Tracker expectations
       status:
