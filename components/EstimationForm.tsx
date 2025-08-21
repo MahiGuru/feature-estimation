@@ -592,10 +592,34 @@ export default function EstimationForm() {
       // Store response in localStorage for dashboard access
       localStorage.setItem("apiResponse", JSON.stringify(data));
 
+      // Create/update featureTimelinelatest.json file
+      try {
+        const jsonContent = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'featureTimelinelatest.json';
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+        
+        console.log('featureTimelinelatest.json file created/updated');
+      } catch (fileError) {
+        console.error('Error creating JSON file:', fileError);
+      }
+
       toast({
         title: "Success",
         description:
-          "Form submitted successfully! Check dashboard for results.",
+          "Form submitted successfully! Check dashboard for results and download the JSON file.",
       });
     } catch (error) {
       console.error("Submit error:", error);

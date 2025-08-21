@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   // State for active tab
   const [activeTab, setActiveTab] = useState("features");
-  
+
   // State for API response
   const [apiResponse, setApiResponse] = useState<any>(null);
 
@@ -71,7 +71,7 @@ export default function Dashboard() {
 
   // Initialize random assignments for all features on component mount
   useEffect(() => {
-    const timelineData = require("@/lib/featureTimelineData.json");
+    const timelineData = require("@/lib/featureTimelinelatest.json");
     const features = timelineData.features;
 
     const initialAssignments: {
@@ -86,13 +86,13 @@ export default function Dashboard() {
 
   // Load API response from localStorage
   useEffect(() => {
-    const savedApiResponse = localStorage.getItem('apiResponse');
-    
+    const savedApiResponse = localStorage.getItem("apiResponse");
+
     if (savedApiResponse) {
       try {
         setApiResponse(JSON.parse(savedApiResponse));
       } catch (error) {
-        console.error('Error parsing API response:', error);
+        console.error("Error parsing API response:", error);
       }
     }
   }, []);
@@ -116,7 +116,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => {
                       setApiResponse(null);
-                      localStorage.removeItem('apiResponse');
+                      localStorage.removeItem("apiResponse");
                     }}
                     className="text-red-500 hover:text-red-700 text-sm"
                   >
@@ -150,7 +150,7 @@ export default function Dashboard() {
           <CardContent className="p-0">
             {/* Import timeline data */}
             {(() => {
-              const timelineData = require("@/lib/featureTimelineData.json");
+              const timelineData = require("@/lib/featureTimelinelatest.json");
               const features = timelineData.features;
               const now = new Date();
               const year = 2025;

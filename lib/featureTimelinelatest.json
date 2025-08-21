@@ -1,0 +1,331 @@
+{
+  "projectEstimation": {
+    "estimationId": "EST-2025-001",
+    "projectName": "MSTeams SSO and Jakarta Migration",
+    "tshirtSize": "XL",
+    "totalProjectSP": "68",
+    "estimatedDuration": "3.4 months",
+    "riskLevel": "Medium",
+    "estimatedSprints": "7",
+    "sprintConfiguration": {
+      "sprintSize": "2 weeks",
+      "sprintVelocity": "10"
+    },
+    "teamComposition": {
+      "developers": "5",
+      "qa": "2",
+      "po": "1",
+      "ba": "1",
+      "managers": "1",
+      "deliveryManagers": "2",
+      "architects": "1"
+    },
+    "resourceAllocation": {
+      "developmentEffort": "60",
+      "testingEffort": "30",
+      "managementEffort": "10"
+    },
+    "estimationMetadata": {
+      "estimationMethod": "AI Analysis + Historical Data",
+      "estimationDate": "2025-08-20",
+      "estimatedBy": "AI Prediction System",
+      "validatedBy": "To be assigned",
+      "lastUpdated": "2025-08-20"
+    }
+  },
+  "features": [
+    {
+      "id": "FT-001",
+      "name": "MSTeams SSO",
+      "description": "Implement Single Sign-On for MS Teams integration, enabling users to seamlessly access IdentityIQ through their Teams accounts. This includes configuring SAML authentication, handling session management, and ensuring secure communication between IdentityIQ and MS Teams.",
+      "status": "planned",
+      "priority": "high",
+      "size": "XL",
+      "storyPoints": "34",
+      "consumedPoints": 0,
+      "quarterlyConsumption": {
+        "Q1": {
+          "planned": "0",
+          "consumed": 0
+        },
+        "Q2": {
+          "planned": "0",
+          "consumed": 0
+        },
+        "Q3": {
+          "planned": "21",
+          "consumed": 0
+        },
+        "Q4": {
+          "planned": "13",
+          "consumed": 0
+        }
+      },
+      "assignedTo": "Team Lead",
+      "team": "Full Stack",
+      "sprint": "Sprint 1-4",
+      "progress": 0,
+      "startDate": "2025-09-03",
+      "endDate": "2025-10-29",
+      "quarters": [
+        "Q3",
+        "Q4"
+      ],
+      "dependencies": [
+        "Authentication Service",
+        "MS Teams API"
+      ],
+      "tags": [
+        "Authentication",
+        "SSO",
+        "MS Teams",
+        "Integration"
+      ],
+      "deliverables": [
+        "SAML Configuration",
+        "Session Management",
+        "API Integration",
+        "Test Cases"
+      ],
+      "estimation": {
+        "originalEstimate": "30",
+        "finalEstimate": "34",
+        "complexityScore": "8",
+        "uncertaintyLevel": "Medium",
+        "bufferPercentage": "13",
+        "estimationAccuracy": "85",
+        "estimationDate": "2025-08-20",
+        "estimatedBy": "AI Prediction System"
+      },
+      "businessContext": {
+        "businessValue": "High",
+        "userImpact": "Critical",
+        "revenueImpact": "Medium",
+        "strategicImportance": "High",
+        "customerSegment": [
+          "All Users"
+        ]
+      },
+      "technicalContext": {
+        "technologyStack": [
+          "Java",
+          "Spring",
+          "SAML",
+          "MS Teams API"
+        ],
+        "architecture": "Microservices",
+        "integrationPoints": [
+          "Authentication Service",
+          "MS Teams API"
+        ],
+        "technicalRisks": [
+          "SAML Configuration Errors",
+          "API Compatibility Issues",
+          "Security Vulnerabilities"
+        ],
+        "performanceRequirements": {
+          "responseTime": "200ms",
+          "throughput": "1000 req/sec",
+          "availability": "99.9%"
+        }
+      },
+      "jiraIntegration": {
+        "jiraKey": "IIQ-1234",
+        "epicKey": "IIQMAG-6289",
+        "labels": [
+          "authentication",
+          "sso",
+          "msteams"
+        ],
+        "components": [
+          "Authentication",
+          "Teams Integration"
+        ],
+        "timeTracking": {
+          "originalEstimate": "170h",
+          "remainingEstimate": "170h",
+          "timeSpent": "0h"
+        }
+      }
+    },
+    {
+      "id": "FT-002",
+      "name": "JAKARTHA migration",
+      "description": "Migrate the application from the old JEE specifications to the newer Jakarta EE specifications. This includes updating dependencies, refactoring code, and ensuring compatibility with the new platform. This is to ensure the application remains secure and up to date with the latest standards.",
+      "status": "planned",
+      "priority": "medium",
+      "size": "XL",
+      "storyPoints": "34",
+      "consumedPoints": 0,
+      "quarterlyConsumption": {
+        "Q1": {
+          "planned": "0",
+          "consumed": 0
+        },
+        "Q2": {
+          "planned": "0",
+          "consumed": 0
+        },
+        "Q3": {
+          "planned": "13",
+          "consumed": 0
+        },
+        "Q4": {
+          "planned": "21",
+          "consumed": 0
+        }
+      },
+      "assignedTo": "Team Lead",
+      "team": "Backend",
+      "sprint": "Sprint 4-7",
+      "progress": 0,
+      "startDate": "2025-10-29",
+      "endDate": "2025-12-24",
+      "quarters": [
+        "Q4"
+      ],
+      "dependencies": [
+        "Core Libraries",
+        "Application Server"
+      ],
+      "tags": [
+        "Migration",
+        "JakartaEE",
+        "Backend",
+        "Performance"
+      ],
+      "deliverables": [
+        "Updated Dependencies",
+        "Refactored Code",
+        "Compatibility Tests",
+        "Migration Guide"
+      ],
+      "estimation": {
+        "originalEstimate": "30",
+        "finalEstimate": "34",
+        "complexityScore": "7",
+        "uncertaintyLevel": "Medium",
+        "bufferPercentage": "13",
+        "estimationAccuracy": "85",
+        "estimationDate": "2025-08-20",
+        "estimatedBy": "AI Prediction System"
+      },
+      "businessContext": {
+        "businessValue": "Medium",
+        "userImpact": "Low",
+        "revenueImpact": "Low",
+        "strategicImportance": "High",
+        "customerSegment": [
+          "All Users"
+        ]
+      },
+      "technicalContext": {
+        "technologyStack": [
+          "Java",
+          "Jakarta EE",
+          "Application Server"
+        ],
+        "architecture": "Monolithic",
+        "integrationPoints": [
+          "Core Libraries",
+          "Application Server"
+        ],
+        "technicalRisks": [
+          "Compatibility Issues",
+          "Performance Degradation",
+          "Security Vulnerabilities"
+        ],
+        "performanceRequirements": {
+          "responseTime": "250ms",
+          "throughput": "800 req/sec",
+          "availability": "99.9%"
+        }
+      },
+      "jiraIntegration": {
+        "jiraKey": "IIQ-5678",
+        "epicKey": "IIQMAG-5526",
+        "labels": [
+          "migration",
+          "jakartaee",
+          "performance"
+        ],
+        "components": [
+          "Server"
+        ],
+        "timeTracking": {
+          "originalEstimate": "170h",
+          "remainingEstimate": "170h",
+          "timeSpent": "0h"
+        }
+      }
+    }
+  ],
+  "sizeMapping": {
+    "S": {
+      "range": "5-8",
+      "description": "Small - Simple features with minimal complexity"
+    },
+    "M": {
+      "range": "13",
+      "description": "Medium - Moderate complexity with some integration"
+    },
+    "L": {
+      "range": "21",
+      "description": "Large - Complex features requiring significant effort"
+    },
+    "XL": {
+      "range": "34",
+      "description": "Extra Large - Major features with multiple components"
+    },
+    "XXL": {
+      "range": "55",
+      "description": "Extra Extra Large - Epic-level features spanning multiple sprints"
+    }
+  },
+  "quarters": {
+    "Q1": {
+      "start": "2025-01-01",
+      "end": "2025-03-31",
+      "name": "Q1 2025"
+    },
+    "Q2": {
+      "start": "2025-04-01",
+      "end": "2025-06-30",
+      "name": "Q2 2025"
+    },
+    "Q3": {
+      "start": "2025-07-01",
+      "end": "2025-09-30",
+      "name": "Q3 2025"
+    },
+    "Q4": {
+      "start": "2025-10-01",
+      "end": "2025-12-31",
+      "name": "Q4 2025"
+    }
+  },
+  "teams": [
+    "Frontend",
+    "Backend",
+    "Full Stack",
+    "DevOps"
+  ],
+  "statuses": {
+    "completed": {
+      "color": "green",
+      "label": "Completed"
+    },
+    "in-progress": {
+      "color": "yellow",
+      "label": "In Progress"
+    },
+    "blocked": {
+      "color": "red",
+      "label": "Blocked"
+    },
+    "planned": {
+      "color": "blue",
+      "label": "Planned"
+    }
+  }
+}

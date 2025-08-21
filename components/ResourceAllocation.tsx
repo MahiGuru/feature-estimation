@@ -27,7 +27,7 @@ import {
 
 export default function ResourceAllocation() {
   // Load data from JSON
-  const timelineData = require("@/lib/featureTimelineData.json");
+  const timelineData = require("@/lib/featureTimelinelatest.json");
   const { projectEstimation, features } = timelineData;
 
   // Calculate team workload
@@ -157,10 +157,9 @@ export default function ResourceAllocation() {
     count: count as number,
     percentage: Math.round(
       ((count as number) /
-        Object.values(projectEstimation.teamComposition as Record<string, any>).reduce(
-          (a: number, b: any) => a + (b || 0),
-          0
-        )) *
+        Object.values(
+          projectEstimation.teamComposition as Record<string, any>
+        ).reduce((a: number, b: any) => a + (b || 0), 0)) *
         100
     ),
   }));
@@ -208,10 +207,9 @@ export default function ResourceAllocation() {
               <p className="text-sm text-blue-600 font-medium">Total Team</p>
             </div>
             <p className="text-2xl font-bold text-blue-700">
-              {Object.values(projectEstimation.teamComposition as Record<string, any>).reduce(
-                (a: number, b: any) => a + (b || 0),
-                0
-              )}
+              {Object.values(
+                projectEstimation.teamComposition as Record<string, any>
+              ).reduce((a: number, b: any) => a + (b || 0), 0)}
             </p>
             <p className="text-xs text-blue-500 mt-1">Members</p>
           </div>
