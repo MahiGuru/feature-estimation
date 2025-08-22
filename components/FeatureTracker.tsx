@@ -138,22 +138,8 @@ export default function FeatureTracker() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-        <div>
-          <h2 className="text-2xl font-bold text-blue-900">Feature Tracker</h2>
-          <p className="text-blue-600">
-            Track and manage project features with detailed insights
-          </p>
-        </div>
-        <Button className="gradient-button">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Feature
-        </Button>
-      </div>
-
       {/* Filters */}
-      <Card className="professional-card">
+      <Card className="professional-card d-none">
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
@@ -251,9 +237,6 @@ export default function FeatureTracker() {
                     Story Points
                   </th>
                   <th className="text-left p-4 font-semibold text-blue-900">
-                    Assigned To
-                  </th>
-                  <th className="text-left p-4 font-semibold text-blue-900">
                     Sprint
                   </th>
                   <th className="text-left p-4 font-semibold text-blue-900">
@@ -283,7 +266,6 @@ export default function FeatureTracker() {
                         {feature.storyPoints} SP
                       </Badge>
                     </td>
-                    <td className="p-4 text-blue-700">{feature.team}</td>
                     <td className="p-4 text-blue-700">{feature.sprint}</td>
                     <td className="p-4">
                       <div className="flex space-x-2">

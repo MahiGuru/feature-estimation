@@ -13,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -124,6 +131,9 @@ export default function EstimationForm() {
   const [isLoadingEpics, setIsLoadingEpics] = useState(false);
   const [selectValue, setSelectValue] = useState<string>("");
   const [apiResponse, setApiResponse] = useState<any>(null);
+  const [customEpics, setCustomEpics] = useState<string[]>([]);
+  const [showCustomEpicDialog, setShowCustomEpicDialog] = useState(false);
+  const [newEpicName, setNewEpicName] = useState("");
 
   // Function to completely reset form data
   // Handle retry functionality
@@ -212,9 +222,7 @@ export default function EstimationForm() {
       name: trimmedFeature,
       description: trimmedDescription,
       tshirtsize: additionalData?.tshirtSize || "",
-      epic: additionalData?.epic || "",
-      startDate: additionalData?.startDate || "",
-      endDate: additionalData?.endDate || "",
+      // epic: additionalData?.epic || "",
       referenceAttachements: additionalData?.files || [],
     };
 
@@ -274,8 +282,6 @@ export default function EstimationForm() {
     setDetailedFeatureName("");
     setDetailedFeatureDescription("");
     setDetailedFeatureEpic("");
-    setFeatureStartDate("");
-    setFeatureEndDate("");
     setFeatureTshirtSize("");
     setFeatureFiles([]);
   };
@@ -299,6 +305,20 @@ export default function EstimationForm() {
       description:
         "JIRA integration configured successfully. Epics are now available in the dropdown.",
     });
+  };
+
+  const handleAddCustomEpic = () => {
+    if (newEpicName.trim() && !customEpics.includes(newEpicName.trim())) {
+      const newEpic = newEpicName.trim();
+      setCustomEpics((prev) => [...prev, newEpic]);
+      setDetailedFeatureEpic(newEpic);
+      setNewEpicName("");
+      setShowCustomEpicDialog(false);
+      toast({
+        title: "Epic Created",
+        description: `Custom epic "${newEpic}" has been added and selected.`,
+      });
+    }
   };
 
   const isEpic = (item: string) => {
@@ -558,6 +578,8 @@ export default function EstimationForm() {
       .map((f) => ({
         name: f.name.trim(),
         description: (f.description || "").trim(),
+        tShirtSizing: f.tshirtsize,
+        epic: f.epic || selectedEpic || "", // Use selected epic if available
       }));
 
     console.log("Final features to send:", featuresData);
@@ -595,7 +617,7 @@ export default function EstimationForm() {
       const requestData = {
         features: featuresData, // Only valid user-selected features
         epics: selectedEpic ? { epic1: selectedEpic } : {},
-        tShirtSizing: tshirtSize || "M",
+        releaseStartDate: featureStartDate || new Date().toISOString(),
         oldReferenceSheet: uploadedFiles.map((file) => ({
           fileName: file.name,
           features: file.features,
@@ -617,7 +639,8 @@ export default function EstimationForm() {
         },
         additionalNotes: customNotes || "",
       };
-
+      console.log("Request Data:", requestData);
+      console.log("Stringify Request Data:", JSON.stringify(requestData));
       // Prepare excel file details
       const excelDetails = uploadedFiles.map((file) => ({
         name: file.name,
@@ -807,81 +830,10 @@ export default function EstimationForm() {
                             rows={5}
                           />
                         </div>
-
-                        {/* Epic Input */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                            Choose Epic
-                          </Label>
-                          <Select
-                            value={detailedFeatureEpic}
-                            onValueChange={setDetailedFeatureEpic}
-                          >
-                            <SelectTrigger className="form-input">
-                              <SelectValue placeholder="Select or enter related epic" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
-                                Predefined Epics
-                              </div>
-                              {PREDEFINED_EPICS.map((epic) => (
-                                <SelectItem key={epic} value={epic}>
-                                  <div className="flex items-center space-x-2">
-                                    <Badge className="bg-purple-100 text-purple-700 text-xs">
-                                      Epic
-                                    </Badge>
-                                    <span>{epic}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-
-                              {jiraEpics.length > 0 && (
-                                <>
-                                  <div className="my-2 border-t" />
-                                  <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 flex items-center space-x-1">
-                                    <GitBranch className="w-3 h-3" />
-                                    <span>JIRA Epics</span>
-                                  </div>
-                                  {jiraEpics.map((epic) => (
-                                    <SelectItem
-                                      key={epic.key}
-                                      value={jiraService.formatIssueAsFeature(
-                                        epic
-                                      )}
-                                    >
-                                      <div className="flex items-center space-x-2">
-                                        <Badge className="bg-purple-100 text-purple-700 text-xs">
-                                          {epic.key}
-                                        </Badge>
-                                        <span className="truncate">
-                                          {epic.fields.summary}
-                                        </span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
 
                       {/* Right Column */}
                       <div className="space-y-4">
-                        {/* Start Date */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                            Planned Start Date
-                          </Label>
-                          <Input
-                            type="date"
-                            value={featureStartDate}
-                            onChange={(e) =>
-                              setFeatureStartDate(e.target.value)
-                            }
-                            className="form-input"
-                          />
-                        </div>
                         {/* T-Shirt Size */}
                         <div>
                           <Label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -1011,8 +963,6 @@ export default function EstimationForm() {
                               detailedFeatureDescription.trim() || undefined,
                               {
                                 epic: detailedFeatureEpic,
-                                startDate: featureStartDate,
-                                endDate: featureEndDate,
                                 tshirtSize: featureTshirtSize,
                                 files: featureFiles,
                               }
@@ -1337,7 +1287,18 @@ export default function EstimationForm() {
                   </div>
                 </div>
               </div>
-
+              {/* Start Date */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Planned Start Date
+                </Label>
+                <Input
+                  type="date"
+                  value={featureStartDate}
+                  onChange={(e) => setFeatureStartDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
               <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg mb-3">
                 <Switch
                   id="reference-toggle"
@@ -1599,12 +1560,12 @@ export default function EstimationForm() {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-6 h-6 mr-4 animate-spin" />
-                Submitting Form...
+                Generating delivery plan...
               </>
             ) : (
               <>
                 <Upload className="w-6 h-6 mr-4" />
-                Submit Form
+                Generate Delivery Plan
               </>
             )}
           </Button>
@@ -1651,6 +1612,75 @@ export default function EstimationForm() {
           onOpenChange={setShowJiraImport}
           onImport={handleJiraImport}
         />
+
+        {/* Custom Epic Dialog */}
+        <Dialog
+          open={showCustomEpicDialog}
+          onOpenChange={setShowCustomEpicDialog}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Plus className="w-5 h-5 text-blue-600" />
+                <span>Add New Epic</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="epic-name" className="text-sm font-medium">
+                  Epic Name
+                </Label>
+                <Input
+                  id="epic-name"
+                  placeholder="Enter epic name..."
+                  value={newEpicName}
+                  onChange={(e) => setNewEpicName(e.target.value)}
+                  className="mt-2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newEpicName.trim()) {
+                      handleAddCustomEpic();
+                    }
+                  }}
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start space-x-2">
+                  <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-700">
+                    <p className="font-medium mb-1">Custom Epic Guidelines:</p>
+                    <ul className="text-xs space-y-0.5">
+                      <li>
+                        • Use descriptive names (e.g., &quot;User Management
+                        System&quot;)
+                      </li>
+                      <li>• Keep names concise but meaningful</li>
+                      <li>• Avoid duplicate names</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCustomEpicDialog(false);
+                  setNewEpicName("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddCustomEpic}
+                disabled={!newEpicName.trim()}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Epic
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );
