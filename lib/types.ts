@@ -11,10 +11,11 @@ export interface TeamMember {
 export interface FeatureItem {
   name: string;
   description?: string;
+  tshirtsize?: string;
+  epic?: string;
   startDate?: string;
   endDate?: string;
-  tshirtSize?: string;
-  files?: File[];
+  referenceAttachements?: File[];
 }
 
 export interface EstimationData {

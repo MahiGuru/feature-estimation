@@ -37,7 +37,17 @@ The Estimation Form now includes a comprehensive **"Add Detailed Feature"** sect
   - **XL** - Extra Large (1-2 months)
   - **XXL** - Epic (2+ months)
 
-#### 5. **File Upload Component** ✅
+#### 5. **Epic Input Field** ✅
+- **Field**: Related Epic (Optional)
+- **Type**: Dropdown Select
+- **Purpose**: Associate feature with an epic for better organization
+- **Options**:
+  - **Predefined Epics**: Pre-configured epic options
+  - **JIRA Epics**: Loaded from JIRA integration if configured
+- **Display**: Purple badge in feature list and detailed popover
+- **Position**: Between T-shirt sizing and description fields
+
+#### 6. **File Upload Component** ✅
 - **Field**: Supporting Documents
 - **Type**: Multi-file upload with drag & drop
 - **Accepted Formats**: PDF, DOC, DOCX, TXT, MD, XLSX, XLS
@@ -48,7 +58,7 @@ The Estimation Form now includes a comprehensive **"Add Detailed Feature"** sect
   - Drag & drop interface
   - File type validation
 
-#### 6. **Add Feature Button** ✅
+#### 7. **Add Feature Button** ✅
 - **Action**: Saves feature with all details
 - **Validation**: Requires feature name
 - **Feedback**: Success toast notification
@@ -64,14 +74,15 @@ The Estimation Form now includes a comprehensive **"Add Detailed Feature"** sect
 - **Header**: Green icon with clear title and description
 
 ### **Two-Column Layout**
-- **Left Column**: Feature name, description, T-shirt size
+- **Left Column**: Feature name, description, T-shirt size, epic selection
 - **Right Column**: Start/end dates, file upload
 - **Responsive**: Stacks on mobile devices
 
 ### **Enhanced Feature Display**
 - **T-Shirt Size Badges**: Visible on feature items
+- **Epic Badges**: Purple badges for associated epics
 - **Date Ranges**: Shown under feature names
-- **Info Popover**: Complete details on hover/click
+- **Info Popover**: Complete details on hover/click with epic info
 - **File Indicators**: Shows when files are attached
 
 ---
@@ -82,6 +93,7 @@ The Estimation Form now includes a comprehensive **"Add Detailed Feature"** sect
 ```typescript
 const [detailedFeatureName, setDetailedFeatureName] = useState("");
 const [detailedFeatureDescription, setDetailedFeatureDescription] = useState("");
+const [detailedFeatureEpic, setDetailedFeatureEpic] = useState("");
 const [featureStartDate, setFeatureStartDate] = useState("");
 const [featureEndDate, setFeatureEndDate] = useState("");
 const [featureTshirtSize, setFeatureTshirtSize] = useState("");
@@ -93,10 +105,11 @@ const [featureFiles, setFeatureFiles] = useState<File[]>([]);
 export interface FeatureItem {
   name: string;
   description?: string;
-  startDate?: string;      // NEW
-  endDate?: string;        // NEW
-  tshirtSize?: string;     // NEW
-  files?: File[];          // NEW
+  tshirtsize?: string;           // NEW (lowercase 's')
+  epic?: string;                 // NEW
+  startDate?: string;            // NEW
+  endDate?: string;              // NEW
+  referenceAttachements?: File[]; // NEW (renamed from files)
 }
 ```
 
@@ -105,21 +118,37 @@ export interface FeatureItem {
 - Stores files, dates, and T-shirt size with each feature
 - Maintains backward compatibility with existing features
 
+### **Feature Object Structure:**
+When the "Add Feature" button is clicked, features are added with this exact structure:
+```typescript
+{
+  name: "MSTeams SSO Integration",
+  description: "Single Sign-On integration with Microsoft Teams",
+  tshirtsize: "XL",
+  epic: "User Management Epic",
+  startDate: "2024-01-01",
+  endDate: "2024-01-31",
+  referenceAttachements: [File objects with document details]
+}
+```
+
 ---
 
 ## 📱 **User Experience:**
 
 ### **Form Flow:**
 1. **Fill Basic Info**: Name and description
-2. **Set Timeline**: Optional start/end dates
-3. **Size Estimation**: Optional T-shirt sizing
-4. **Upload Documents**: HLD, PRD, or reference files
-5. **Add Feature**: Single click saves everything
-6. **Auto Clear**: Form resets for next feature
+2. **Size Estimation**: Optional T-shirt sizing
+3. **Epic Association**: Optional epic selection (predefined or JIRA)
+4. **Set Timeline**: Optional start/end dates
+5. **Upload Documents**: HLD, PRD, or reference files
+6. **Add Feature**: Single click saves everything
+7. **Auto Clear**: Form resets for next feature
 
 ### **Feature Management:**
-- **Visual Indicators**: T-shirt size badges and date ranges
-- **Detailed Popover**: Click info icon for complete details
+- **Visual Indicators**: T-shirt size badges, epic badges, and date ranges
+- **Detailed Popover**: Click info icon for complete details including epic info
+- **Epic Integration**: Seamlessly works with JIRA if configured
 - **File Management**: View and remove uploaded files
 - **Clear Form**: Reset button for starting over
 
@@ -136,7 +165,8 @@ export interface FeatureItem {
 ✅ **2. Add Feature textarea description** - Large description textarea  
 ✅ **3. Add feature start date and end date** - Date picker inputs  
 ✅ **4. Add Tshirt estimation size - optional** - Dropdown with size options  
-✅ **5. Upload files component for uploading HLD or PRD or previous estimation document** - Multi-file upload with preview  
-✅ **6. Add feature button** - Green "Add Feature" button with validation  
+✅ **5. Add epic input also inbetween tshirt sizeing and description and this is optional** - Epic dropdown with predefined and JIRA options  
+✅ **6. Upload files component for uploading HLD or PRD or previous estimation document** - Multi-file upload with preview  
+✅ **7. Add feature button** - Green "Add Feature" button with validation  
 
-The enhanced feature section provides a comprehensive solution for detailed project planning while maintaining the simplicity of the original quick-add functionality!
+The enhanced feature section now provides a comprehensive solution for detailed project planning with full epic integration, while maintaining the simplicity of the original quick-add functionality!

@@ -278,7 +278,7 @@ export default function Dashboard() {
                                 >
                               ).reduce(
                                 (sum: number, q: any) =>
-                                  sum + (q?.planned || 0),
+                                  sum + (parseInt(q?.planned) || 0),
                                 0
                               );
                               const totalConsumed = Object.values(
@@ -288,7 +288,7 @@ export default function Dashboard() {
                                 >
                               ).reduce(
                                 (sum: number, q: any) =>
-                                  sum + (q?.consumed || 0),
+                                  sum + (parseInt(q?.consumed) || 0),
                                 0
                               );
 
@@ -474,7 +474,7 @@ export default function Dashboard() {
                           </div>
 
                           {/* Left Summary Row */}
-                          <div className="h-16 border-t-2 border-blue-300 bg-blue-100 px-4 flex items-center justify-between flex-shrink-0">
+                          {/* <div className="h-16 border-t-2 border-blue-300 bg-blue-100 px-4 flex items-center justify-between flex-shrink-0">
                             <span className="font-bold text-blue-900">
                               Total Project
                             </span>
@@ -489,7 +489,7 @@ export default function Dashboard() {
                                     >
                                   ).reduce(
                                     (s: number, q: any) =>
-                                      s + (q?.consumed || 0),
+                                      s + (parseInt(q?.consumed) || 0),
                                     0
                                   ),
                                 0
@@ -505,29 +505,42 @@ export default function Dashboard() {
                                     >
                                   ).reduce(
                                     (s: number, q: any) =>
-                                      s + (q?.planned || 0),
+                                      s + (parseInt(q?.planned) || 0),
                                     0
                                   ),
                                 0
                               )}{" "}
                               SP
                             </span>
-                          </div>
+                          </div> */}
                         </div>
 
                         {/* Right Section - Timeline Grid */}
                         <div className="flex-1 bg-white flex flex-col">
-                          {/* Quarter Headers with Totals */}
+                          {/* Quarter Headers with Totals - Only show quarters with data */}
                           <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
                             <div className="flex-1 flex">
-                              {["Q1", "Q2", "Q3", "Q4"].map(
-                                (quarter, index) => {
+                              {["Q1", "Q2", "Q3", "Q4"]
+                                .filter((quarter) => {
+                                  // Only show quarters that have at least one feature with planned data
+                                  return features.some((feature: any) => {
+                                    const qData =
+                                      feature.quarterlyConsumption[quarter];
+                                    return qData && parseInt(qData.planned) > 0;
+                                  });
+                                })
+                                .map((quarter, index) => {
                                   // Calculate quarterly totals for this quarter
                                   const quarterTotal = features.reduce(
                                     (sum: number, feature: any) => {
                                       const qData =
                                         feature.quarterlyConsumption[quarter];
-                                      return sum + (qData ? qData.planned : 0);
+                                      return (
+                                        sum +
+                                        (qData
+                                          ? parseInt(qData.planned) || 0
+                                          : 0)
+                                      );
                                     },
                                     0
                                   );
@@ -536,7 +549,12 @@ export default function Dashboard() {
                                     (sum: number, feature: any) => {
                                       const qData =
                                         feature.quarterlyConsumption[quarter];
-                                      return sum + (qData ? qData.consumed : 0);
+                                      return (
+                                        sum +
+                                        (qData
+                                          ? parseInt(qData.consumed) || 0
+                                          : 0)
+                                      );
                                     },
                                     0
                                   );
@@ -557,8 +575,7 @@ export default function Dashboard() {
                                       </div>
                                     </div>
                                   );
-                                }
-                              )}
+                                })}
                             </div>
                           </div>
 
@@ -574,23 +591,46 @@ export default function Dashboard() {
                                   key={feature.id}
                                   className="relative h-[140px] border-b border-blue-100 group"
                                 >
-                                  {/* Quarter dividers */}
+                                  {/* Quarter dividers - Only for quarters with data */}
                                   <div className="absolute inset-0 flex">
-                                    {[0, 1, 2, 3].map((q) => (
-                                      <div
-                                        key={q}
-                                        className="flex-1 border-r border-blue-100 last:border-r-0"
-                                      />
-                                    ))}
+                                    {["Q1", "Q2", "Q3", "Q4"]
+                                      .filter((quarter) => {
+                                        return features.some((f: any) => {
+                                          const qData =
+                                            f.quarterlyConsumption[quarter];
+                                          return (
+                                            qData && parseInt(qData.planned) > 0
+                                          );
+                                        });
+                                      })
+                                      .map((q, index) => (
+                                        <div
+                                          key={q}
+                                          className="flex-1 border-r border-blue-100 last:border-r-0"
+                                        />
+                                      ))}
                                   </div>
 
-                                  {/* Quarter-based bars */}
+                                  {/* Quarter-based bars - Only for quarters with data */}
                                   <div className="absolute inset-0 flex">
-                                    {["Q1", "Q2", "Q3", "Q4"].map(
-                                      (quarter: any, qIndex) => {
+                                    {["Q1", "Q2", "Q3", "Q4"]
+                                      .filter((quarter) => {
+                                        return features.some((f: any) => {
+                                          const qData =
+                                            f.quarterlyConsumption[quarter];
+                                          return (
+                                            qData && parseInt(qData.planned) > 0
+                                          );
+                                        });
+                                      })
+                                      .map((quarter: any, qIndex) => {
                                         const qData =
                                           feature.quarterlyConsumption[quarter];
-                                        if (!qData || qData.planned === 0)
+                                        const plannedValue =
+                                          parseInt(qData?.planned) || 0;
+                                        const consumedValue =
+                                          parseInt(qData?.consumed) || 0;
+                                        if (!qData || plannedValue === 0)
                                           return (
                                             <div
                                               key={quarter}
@@ -598,10 +638,10 @@ export default function Dashboard() {
                                             />
                                           );
 
-                                        const hasConsumed = qData.consumed > 0;
+                                        const hasConsumed = consumedValue > 0;
                                         const consumedPercentage =
-                                          qData.planned > 0
-                                            ? (qData.consumed / qData.planned) *
+                                          plannedValue > 0
+                                            ? (consumedValue / plannedValue) *
                                               100
                                             : 0;
 
@@ -694,9 +734,9 @@ export default function Dashboard() {
                                                       {/* Story points text */}
                                                       <div className="absolute inset-0 flex items-center justify-center">
                                                         <span className="text-sm font-bold text-gray-800 drop-shadow-sm">
-                                                          {qData.consumed > 0
-                                                            ? `${qData.consumed}/${qData.planned}`
-                                                            : qData.planned}{" "}
+                                                          {consumedValue > 0
+                                                            ? `${consumedValue}/${plannedValue}`
+                                                            : plannedValue}{" "}
                                                           SP
                                                         </span>
                                                       </div>
@@ -709,17 +749,16 @@ export default function Dashboard() {
                                                       {feature.name} - {quarter}
                                                     </p>
                                                     <p>
-                                                      Planned: {qData.planned}{" "}
-                                                      SP
+                                                      Planned: {plannedValue} SP
                                                     </p>
                                                     <p>
-                                                      Consumed: {qData.consumed}{" "}
+                                                      Consumed: {consumedValue}{" "}
                                                       SP
                                                     </p>
                                                     <p>
                                                       Remaining:{" "}
-                                                      {qData.planned -
-                                                        qData.consumed}{" "}
+                                                      {plannedValue -
+                                                        consumedValue}{" "}
                                                       SP
                                                     </p>
                                                     <p>
@@ -754,8 +793,7 @@ export default function Dashboard() {
                                             </TooltipProvider>
                                           </div>
                                         );
-                                      }
-                                    )}
+                                      })}
                                   </div>
                                 </div>
                               );
@@ -796,7 +834,7 @@ export default function Dashboard() {
                                       >
                                     ).reduce(
                                       (s: number, q: any) =>
-                                        s + (q?.planned || 0),
+                                        s + (parseInt(q?.planned) || 0),
                                       0
                                     )
                                   );

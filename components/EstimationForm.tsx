@@ -63,14 +63,26 @@ export default function EstimationForm() {
     {
       name: "MSTeams SSO Integration",
       description: "Single Sign-On integration with Microsoft Teams",
+      epic: "User Authentication",
+      startDate: "2024-01-01",
+      tshirtsize: "M",
+      referenceAttachements: [],
     },
     {
       name: "Jakartha EE Migration",
       description: "Migrate application to Jakarta EE 10",
+      epic: "Infrastructure Upgrade",
+      startDate: "2024-02-01",
+      tshirtsize: "L",
+      referenceAttachements: [],
     },
     {
       name: "Angular 20 Upgrade",
       description: "Upgrade Angular to version 20",
+      epic: "Frontend Modernization",
+      startDate: "2024-03-01",
+      tshirtsize: "XL",
+      referenceAttachements: [],
     },
   ]);
   const [customFeature, setCustomFeature] = useState("");
@@ -82,6 +94,7 @@ export default function EstimationForm() {
   const [detailedFeatureName, setDetailedFeatureName] = useState("");
   const [detailedFeatureDescription, setDetailedFeatureDescription] =
     useState("");
+  const [detailedFeatureEpic, setDetailedFeatureEpic] = useState("");
   const [sprintSize, setSprintSize] = useState<number>(2);
   const [teamMembers, setTeamMembers] = useState<TeamMember>({
     developers: 5,
@@ -170,6 +183,7 @@ export default function EstimationForm() {
     feature: string,
     description?: string,
     additionalData?: {
+      epic?: string;
       startDate?: string;
       endDate?: string;
       tshirtSize?: string;
@@ -197,10 +211,11 @@ export default function EstimationForm() {
     const newFeatureObj = {
       name: trimmedFeature,
       description: trimmedDescription,
+      tshirtsize: additionalData?.tshirtSize || "",
+      epic: additionalData?.epic || "",
       startDate: additionalData?.startDate || "",
       endDate: additionalData?.endDate || "",
-      tshirtSize: additionalData?.tshirtSize || "",
-      files: additionalData?.files || [],
+      referenceAttachements: additionalData?.files || [],
     };
 
     if (featureIsEpic) {
@@ -258,6 +273,7 @@ export default function EstimationForm() {
   const clearFeatureForm = () => {
     setDetailedFeatureName("");
     setDetailedFeatureDescription("");
+    setDetailedFeatureEpic("");
     setFeatureStartDate("");
     setFeatureEndDate("");
     setFeatureTshirtSize("");
@@ -567,6 +583,7 @@ export default function EstimationForm() {
       return;
     }
 
+    // Immediately show overlay before starting submission
     setIsSubmitting(true);
     setLoading(true);
     setError(null);
@@ -703,8 +720,17 @@ export default function EstimationForm() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 relative">
-      {/* Features & Dependencies Card */}
+    <>
+      {/* Loading Screen Overlay - Moved outside the relative container */}
+      <LoadingScreen
+        isLoading={isLoading}
+        error={storeError}
+        onRetry={handleRetry}
+        onBackToForm={handleBackToForm}
+      />
+      
+      <div className="max-w-7xl mx-auto space-y-12">
+        {/* Features & Dependencies Card */}
       <Card className="professional-card hover-lift">
         <CardHeader>
           <CardTitle className="section-header">
@@ -722,10 +748,6 @@ export default function EstimationForm() {
         <CardContent className="form-section">
           <div className="space-y-6">
             <div className="form-label flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Lightbulb className="w-5 h-5 text-blue-600" />
-                <span>Project Features</span>
-              </div>
               {isJiraConfigured && (
                 <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-xs">
                   <GitBranch className="w-3 h-3 mr-1" />
@@ -735,147 +757,8 @@ export default function EstimationForm() {
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  Select an Epic from the dropdown (selecting a new Epic will
-                  replace the current one)
-                </p>
-                <div className="flex space-x-4">
-                  <Select
-                    value={selectValue}
-                    onValueChange={(value) => {
-                      addFeature(value);
-                      setSelectValue(""); // Reset select after adding
-                    }}
-                  >
-                    <SelectTrigger className="form-input flex-1">
-                      <SelectValue
-                        placeholder={
-                          isLoadingEpics
-                            ? "Loading epics..."
-                            : getSelectedEpic()
-                            ? getSelectedEpic()
-                            : "Select predefined epics, features, or JIRA epics"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
-                        Predefined Epics
-                      </div>
-                      {PREDEFINED_EPICS.map((epic) => (
-                        <SelectItem key={epic} value={epic}>
-                          <div className="flex items-center space-x-2">
-                            <Badge className="bg-purple-100 text-purple-700 text-xs">
-                              Epic
-                            </Badge>
-                            <span>{epic}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-
-                      {jiraEpics.length > 0 && (
-                        <>
-                          <div className="my-2 border-t" />
-                          <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 flex items-center space-x-1">
-                            <GitBranch className="w-3 h-3" />
-                            <span>JIRA Epics</span>
-                          </div>
-                          {jiraEpics.map((epic) => (
-                            <SelectItem
-                              key={epic.key}
-                              value={jiraService.formatIssueAsFeature(epic)}
-                            >
-                              <div className="flex items-center space-x-2">
-                                <Badge className="bg-purple-100 text-purple-700 text-xs">
-                                  Epic
-                                </Badge>
-                                <span className="truncate">
-                                  [{epic.key}] {epic.fields.summary}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 border-purple-300"
-                    onClick={() =>
-                      isJiraConfigured
-                        ? setShowJiraImport(true)
-                        : setShowJiraConfig(true)
-                    }
-                  >
-                    <GitBranch className="w-4 h-4 mr-2" />
-                    {isJiraConfigured ? "Bulk Import" : "Configure JIRA"}
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  Add custom features or search JIRA tasks, bugs, and stories
-                </p>
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 mb-3">
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <JiraAutocomplete
-                        value={customFeature}
-                        onChange={setCustomFeature}
-                        onSelect={(feature) => {
-                          addFeature(feature);
-                          setCustomFeature("");
-                        }}
-                        placeholder={
-                          isJiraConfigured
-                            ? "Enter custom feature or search JIRA tasks, bugs, stories..."
-                            : "Enter custom feature name"
-                        }
-                        className="form-input"
-                      />
-                      <Button
-                        type="button"
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 shadow-lg hover:shadow-xl transition-all duration-300"
-                        onClick={() => {
-                          if (customFeature.trim()) {
-                            addFeature(
-                              customFeature.trim(),
-                              customFeatureDescription.trim() || undefined
-                            );
-                            setCustomFeature("");
-                            setCustomFeatureDescription("");
-                          }
-                        }}
-                        disabled={!customFeature.trim()}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Custom Feature
-                      </Button>
-                    </div>
-                    {customFeature.trim() && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          Feature Description (Optional)
-                        </Label>
-                        <Textarea
-                          value={customFeatureDescription}
-                          onChange={(e) =>
-                            setCustomFeatureDescription(e.target.value)
-                          }
-                          placeholder="Enter a detailed description of the custom feature..."
-                          className="form-input min-h-[80px] resize-none"
-                          rows={3}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 {/* Enhanced Feature Addition Section */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 mt-8">
+                <div className="border border-green-200 rounded-xl p-6 mt-8">
                   <div className="flex items-center space-x-3 mb-6">
                     <div className="p-2 bg-green-100 rounded-lg">
                       <Plus className="w-5 h-5 text-green-600" />
@@ -885,7 +768,7 @@ export default function EstimationForm() {
                         Add Feature
                       </h3>
                       <p className="text-sm text-green-700">
-                        Add a feature with complete details, dates, and
+                        Add a feature with epic and detailed description and
                         supporting documents
                       </p>
                     </div>
@@ -925,6 +808,62 @@ export default function EstimationForm() {
                         />
                       </div>
 
+                      {/* Epic Input */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Choose Epic
+                        </Label>
+                        <Select
+                          value={detailedFeatureEpic}
+                          onValueChange={setDetailedFeatureEpic}
+                        >
+                          <SelectTrigger className="form-input">
+                            <SelectValue placeholder="Select or enter related epic" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                              Predefined Epics
+                            </div>
+                            {PREDEFINED_EPICS.map((epic) => (
+                              <SelectItem key={epic} value={epic}>
+                                <div className="flex items-center space-x-2">
+                                  <Badge className="bg-purple-100 text-purple-700 text-xs">
+                                    Epic
+                                  </Badge>
+                                  <span>{epic}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+
+                            {jiraEpics.length > 0 && (
+                              <>
+                                <div className="my-2 border-t" />
+                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 flex items-center space-x-1">
+                                  <GitBranch className="w-3 h-3" />
+                                  <span>JIRA Epics</span>
+                                </div>
+                                {jiraEpics.map((epic) => (
+                                  <SelectItem
+                                    key={epic.key}
+                                    value={jiraService.formatIssueAsFeature(
+                                      epic
+                                    )}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <Badge className="bg-purple-100 text-purple-700 text-xs">
+                                        {epic.key}
+                                      </Badge>
+                                      <span className="truncate">
+                                        {epic.fields.summary}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       {/* T-Shirt Size */}
                       <div>
                         <Label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -977,7 +916,7 @@ export default function EstimationForm() {
                       </div>
 
                       {/* End Date */}
-                      <div>
+                      {/* <div>
                         <Label className="text-sm font-medium text-gray-700 mb-2 block">
                           Planned End Date
                         </Label>
@@ -988,7 +927,7 @@ export default function EstimationForm() {
                           className="form-input"
                           min={featureStartDate}
                         />
-                      </div>
+                      </div> */}
 
                       {/* File Upload */}
                       <div>
@@ -1070,6 +1009,7 @@ export default function EstimationForm() {
                             detailedFeatureName.trim(),
                             detailedFeatureDescription.trim() || undefined,
                             {
+                              epic: detailedFeatureEpic,
                               startDate: featureStartDate,
                               endDate: featureEndDate,
                               tshirtSize: featureTshirtSize,
@@ -1090,275 +1030,107 @@ export default function EstimationForm() {
                       Add Feature
                     </Button>
                   </div>
-                </div>
 
-                {selectedFeatures.length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="text-sm font-medium text-gray-700">
-                          Selected Items ({selectedFeatures.length})
-                        </div>
-                        {selectedFeatures.length > 100 && (
-                          <Badge variant="destructive" className="text-xs">
-                            Too Many ({selectedFeatures.length})
-                          </Badge>
-                        )}
-                        {selectedFeatures.length > 20 &&
-                          selectedFeatures.length <= 100 && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs border-orange-300 text-orange-600"
-                            >
-                              High Count ({selectedFeatures.length})
+                  {selectedFeatures.length > 0 && (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-sm font-medium text-gray-700">
+                            Selected Items ({selectedFeatures.length})
+                          </div>
+                          {selectedFeatures.length > 100 && (
+                            <Badge variant="destructive" className="text-xs">
+                              Too Many ({selectedFeatures.length})
                             </Badge>
                           )}
-                      </div>
-                      <div className="flex space-x-2">
-                        {selectedFeatures.length > 50 && (
+                          {selectedFeatures.length > 20 &&
+                            selectedFeatures.length <= 100 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-orange-300 text-orange-600"
+                              >
+                                High Count ({selectedFeatures.length})
+                              </Badge>
+                            )}
+                        </div>
+                        <div className="flex space-x-2">
+                          {selectedFeatures.length > 50 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={resetFormData}
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Reset Form
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={resetFormData}
-                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            onClick={() => {
+                              setSelectedFeatures([]);
+                              setSelectValue("");
+                              toast({
+                                title: "Cleared",
+                                description: "All features have been removed",
+                              });
+                            }}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
                             <X className="w-3 h-3 mr-1" />
-                            Reset Form
+                            Clear All
                           </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedFeatures([]);
-                            setSelectValue("");
-                            toast({
-                              title: "Cleared",
-                              description: "All features have been removed",
-                            });
-                          }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Clear All
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Epics Section */}
-                    {selectedFeatures.some((f) => isEpic(f.name)) && (
-                      <div className="mb-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Badge className="bg-purple-600 text-white text-xs font-semibold">
-                            Epics
-                          </Badge>
-                          <span className="text-xs text-gray-600">
-                            (
-                            {
-                              selectedFeatures.filter((f) => isEpic(f.name))
-                                .length
-                            }
-                            )
-                          </span>
                         </div>
-                        <ul className="space-y-2">
-                          {selectedFeatures
-                            .filter((f) => isEpic(f.name))
-                            .map((epic, index) => (
-                              <li
-                                key={`epic-${epic.name}-${index}`}
-                                className="flex items-center justify-between p-3 rounded border-2 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-300 hover:border-purple-400 shadow-sm transition-colors"
-                              >
-                                <div className="flex items-center flex-1 mr-2">
-                                  <span className="text-sm text-purple-800 font-medium">
-                                    {epic.name}
-                                  </span>
-                                  {epic.description && (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 w-5 p-0 ml-2 text-purple-600 hover:text-purple-800"
-                                        >
-                                          <Info className="w-3 h-3" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-80">
-                                        <div className="space-y-2">
-                                          <h4 className="font-semibold text-sm">
-                                            {epic.name}
-                                          </h4>
-                                          <p className="text-sm text-gray-600">
-                                            {epic.description}
-                                          </p>
-                                        </div>
-                                      </PopoverContent>
-                                    </Popover>
-                                  )}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                  onClick={() => removeFeature(epic.name)}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </li>
-                            ))}
-                        </ul>
                       </div>
-                    )}
 
-                    {/* Features Section */}
-                    {selectedFeatures.some((f) => !isEpic(f.name)) && (
-                      <div>
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Badge className="bg-blue-600 text-white text-xs font-semibold">
-                            Features
-                          </Badge>
-                          <span className="text-xs text-gray-600">
-                            (
-                            {
-                              selectedFeatures.filter((f) => !isEpic(f.name))
-                                .length
-                            }
-                            )
-                          </span>
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
+                      {/* Epics Section */}
+                      {selectedFeatures.some((f) => isEpic(f.name)) && (
+                        <div className="mb-4">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Badge className="bg-purple-600 text-white text-xs font-semibold">
+                              Epics
+                            </Badge>
+                            <span className="text-xs text-gray-600">
+                              (
+                              {
+                                selectedFeatures.filter((f) => isEpic(f.name))
+                                  .length
+                              }
+                              )
+                            </span>
+                          </div>
                           <ul className="space-y-2">
                             {selectedFeatures
-                              .filter((f) => !isEpic(f.name))
-                              .map((featureObj, index) => (
+                              .filter((f) => isEpic(f.name))
+                              .map((epic, index) => (
                                 <li
-                                  key={`feature-${featureObj.name}-${index}`}
-                                  className="flex items-center justify-between p-3 rounded border-2 bg-white border-gray-200 hover:border-blue-300 transition-colors"
+                                  key={`epic-${epic.name}-${index}`}
+                                  className="flex items-center justify-between p-3 rounded border-2 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-300 hover:border-purple-400 shadow-sm transition-colors"
                                 >
                                   <div className="flex items-center flex-1 mr-2">
-                                    <div className="flex flex-col flex-1">
-                                      <div className="flex items-center space-x-2">
-                                        <span className="text-sm text-gray-700">
-                                          {featureObj.name}
-                                        </span>
-                                        {featureObj.tshirtSize && (
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs"
-                                          >
-                                            {featureObj.tshirtSize}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      {(featureObj.startDate ||
-                                        featureObj.endDate) && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {featureObj.startDate &&
-                                          featureObj.endDate
-                                            ? `${new Date(
-                                                featureObj.startDate
-                                              ).toLocaleDateString()} - ${new Date(
-                                                featureObj.endDate
-                                              ).toLocaleDateString()}`
-                                            : featureObj.startDate
-                                            ? `Start: ${new Date(
-                                                featureObj.startDate
-                                              ).toLocaleDateString()}`
-                                            : `End: ${new Date(
-                                                featureObj.endDate
-                                              ).toLocaleDateString()}`}
-                                        </div>
-                                      )}
-                                    </div>
-                                    {(featureObj.description ||
-                                      featureObj.files?.length) && (
+                                    <span className="text-sm text-purple-800 font-medium">
+                                      {epic.name}
+                                    </span>
+                                    {epic.description && (
                                       <Popover>
                                         <PopoverTrigger asChild>
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-5 w-5 p-0 ml-2 text-blue-600 hover:text-blue-800"
+                                            className="h-5 w-5 p-0 ml-2 text-purple-600 hover:text-purple-800"
                                           >
                                             <Info className="w-3 h-3" />
                                           </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-96">
-                                          <div className="space-y-3">
+                                        <PopoverContent className="w-80">
+                                          <div className="space-y-2">
                                             <h4 className="font-semibold text-sm">
-                                              {featureObj.name}
+                                              {epic.name}
                                             </h4>
-                                            {featureObj.description && (
-                                              <p className="text-sm text-gray-600">
-                                                {featureObj.description}
-                                              </p>
-                                            )}
-
-                                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                              {featureObj.tshirtSize && (
-                                                <div>
-                                                  <span className="font-medium text-gray-500">
-                                                    Size:
-                                                  </span>
-                                                  <Badge
-                                                    variant="outline"
-                                                    className="ml-1 text-xs"
-                                                  >
-                                                    {featureObj.tshirtSize}
-                                                  </Badge>
-                                                </div>
-                                              )}
-
-                                              {featureObj.startDate && (
-                                                <div>
-                                                  <span className="font-medium text-gray-500">
-                                                    Start:
-                                                  </span>
-                                                  <span className="ml-1 text-gray-700">
-                                                    {new Date(
-                                                      featureObj.startDate
-                                                    ).toLocaleDateString()}
-                                                  </span>
-                                                </div>
-                                              )}
-
-                                              {featureObj.endDate && (
-                                                <div>
-                                                  <span className="font-medium text-gray-500">
-                                                    End:
-                                                  </span>
-                                                  <span className="ml-1 text-gray-700">
-                                                    {new Date(
-                                                      featureObj.endDate
-                                                    ).toLocaleDateString()}
-                                                  </span>
-                                                </div>
-                                              )}
-
-                                              {featureObj.files &&
-                                                featureObj.files.length > 0 && (
-                                                  <div className="col-span-2">
-                                                    <span className="font-medium text-gray-500">
-                                                      Files:
-                                                    </span>
-                                                    <div className="mt-1 space-y-1">
-                                                      {featureObj.files.map(
-                                                        (file, fileIndex) => (
-                                                          <div
-                                                            key={fileIndex}
-                                                            className="flex items-center space-x-1 text-xs text-gray-600"
-                                                          >
-                                                            <FileText className="w-3 h-3" />
-                                                            <span className="truncate">
-                                                              {file.name}
-                                                            </span>
-                                                          </div>
-                                                        )
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                            </div>
+                                            <p className="text-sm text-gray-600">
+                                              {epic.description}
+                                            </p>
                                           </div>
                                         </PopoverContent>
                                       </Popover>
@@ -1368,9 +1140,7 @@ export default function EstimationForm() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                    onClick={() =>
-                                      removeFeature(featureObj.name)
-                                    }
+                                    onClick={() => removeFeature(epic.name)}
                                   >
                                     <X className="w-4 h-4" />
                                   </Button>
@@ -1378,43 +1148,194 @@ export default function EstimationForm() {
                               ))}
                           </ul>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+
+                      {/* Features Section */}
+                      {selectedFeatures.some((f) => !isEpic(f.name)) && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Badge className="bg-blue-600 text-white text-xs font-semibold">
+                              Features
+                            </Badge>
+                            <span className="text-xs text-gray-600">
+                              (
+                              {
+                                selectedFeatures.filter((f) => !isEpic(f.name))
+                                  .length
+                              }
+                              )
+                            </span>
+                          </div>
+                          <div className="max-h-96 overflow-y-auto">
+                            <ul className="space-y-2">
+                              {selectedFeatures
+                                .filter((f) => !isEpic(f.name))
+                                .map((featureObj, index) => (
+                                  <li
+                                    key={`feature-${featureObj.name}-${index}`}
+                                    className="p-4 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm transition-all"
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex-1 space-y-2">
+                                        {/* Feature Name */}
+                                        <div className="font-semibold text-gray-900 text-sm">
+                                          {featureObj.name}
+                                        </div>
+
+                                        {/* Feature Description - 2 lines with ellipsis */}
+                                        {featureObj.description && (
+                                          <div className="text-sm text-gray-600 leading-5">
+                                            <div
+                                              className="line-clamp-2 overflow-hidden"
+                                              style={{
+                                                display: "-webkit-box",
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: "vertical",
+                                                overflow: "hidden",
+                                              }}
+                                            >
+                                              {featureObj.description}
+                                            </div>
+                                            {featureObj.description.length >
+                                              100 && (
+                                              <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="text-blue-600 hover:text-blue-800 text-xs mt-1 p-0 h-auto font-normal"
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  // Toggle full description display
+                                                  const button =
+                                                    e.target as HTMLButtonElement;
+                                                  const target =
+                                                    button.previousElementSibling as HTMLElement;
+                                                  if (
+                                                    target?.style
+                                                      .webkitLineClamp === "2"
+                                                  ) {
+                                                    target.style.webkitLineClamp =
+                                                      "none";
+                                                    button.textContent =
+                                                      "Show less";
+                                                  } else if (target) {
+                                                    target.style.webkitLineClamp =
+                                                      "2";
+                                                    button.textContent = "More";
+                                                  }
+                                                }}
+                                              >
+                                                More
+                                              </Button>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Epic */}
+                                        {featureObj.epic && (
+                                          <div className="text-sm">
+                                            <span className="text-gray-500">
+                                              Epic:{" "}
+                                            </span>
+                                            <Badge className="bg-purple-100 text-purple-700 text-xs">
+                                              {featureObj.epic}
+                                            </Badge>
+                                          </div>
+                                        )}
+
+                                        {/* T-shirt Sizing */}
+                                        {featureObj.tshirtsize && (
+                                          <div className="text-sm">
+                                            <span className="text-gray-500">
+                                              T-shirt sizing:{" "}
+                                            </span>
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs font-medium"
+                                            >
+                                              {featureObj.tshirtsize}
+                                            </Badge>
+                                          </div>
+                                        )}
+
+                                        {/* Tentative Start and End Date */}
+                                        {(featureObj.startDate ||
+                                          featureObj.endDate) && (
+                                          <div className="text-sm">
+                                            <span className="text-gray-500">
+                                              Tentative Start and End date:{" "}
+                                            </span>
+                                            <span className="text-gray-700 font-medium">
+                                              {featureObj.startDate &&
+                                              featureObj.endDate
+                                                ? `${new Date(
+                                                    featureObj.startDate
+                                                  ).toLocaleDateString()} - ${new Date(
+                                                    featureObj.endDate
+                                                  ).toLocaleDateString()}`
+                                                : featureObj.startDate
+                                                ? `Start: ${new Date(
+                                                    featureObj.startDate
+                                                  ).toLocaleDateString()}`
+                                                : `End: ${new Date(
+                                                    featureObj.endDate
+                                                  ).toLocaleDateString()}`}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {/* File Names */}
+                                        {featureObj.referenceAttachements &&
+                                          featureObj.referenceAttachements
+                                            .length > 0 && (
+                                            <div className="text-sm">
+                                              <div className="text-gray-500 mb-1">
+                                                Files:
+                                              </div>
+                                              <div className="space-y-1">
+                                                {featureObj.referenceAttachements.map(
+                                                  (file, fileIndex) => (
+                                                    <div
+                                                      key={fileIndex}
+                                                      className="flex items-center space-x-2"
+                                                    >
+                                                      <FileText className="w-4 h-4 text-gray-400" />
+                                                      <span className="text-xs text-gray-600 truncate">
+                                                        {file.name}
+                                                      </span>
+                                                    </div>
+                                                  )
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+                                      </div>
+
+                                      {/* Cross mark to close this feature */}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          removeFeature(featureObj.name)
+                                        }
+                                        className="ml-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex-shrink-0"
+                                        title="Remove feature"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="form-label flex items-center space-x-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                <span>T-Shirt Sizing</span>
-              </div>
-              <Select value={tshirtSize} onValueChange={setTshirtSize}>
-                <SelectTrigger className="form-input">
-                  <SelectValue placeholder="Select project size estimation" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="XS">
-                    XS - Extra Small (1-2 weeks)
-                  </SelectItem>
-                  <SelectItem value="S">S - Small (2-4 weeks)</SelectItem>
-                  <SelectItem value="M">M - Medium (1-2 months)</SelectItem>
-                  <SelectItem value="L">L - Large (2-3 months)</SelectItem>
-                  <SelectItem value="XL">
-                    XL - Extra Large (3-6 months)
-                  </SelectItem>
-                  <SelectItem value="XXL">
-                    XXL - Extra Extra Large (6+ months)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-blue-600">
-                High-level estimation of the overall project complexity and
-                duration
-              </p>
-            </div>
-            <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg mb-3">
               <Switch
                 id="reference-toggle"
                 checked={showUpload}
@@ -1510,7 +1431,7 @@ export default function EstimationForm() {
 
           <div className="section-divider"></div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 mt-4">
             <div className="form-label flex items-center space-x-2">
               <Settings className="w-5 h-5 text-blue-600" />
               <span>Dependencies & Blockers</span>
@@ -1726,14 +1647,7 @@ export default function EstimationForm() {
         onOpenChange={setShowJiraImport}
         onImport={handleJiraImport}
       />
-
-      {/* Loading Screen Overlay */}
-      <LoadingScreen
-        isLoading={isLoading}
-        error={storeError}
-        onRetry={handleRetry}
-        onBackToForm={handleBackToForm}
-      />
     </div>
+    </>
   );
 }
