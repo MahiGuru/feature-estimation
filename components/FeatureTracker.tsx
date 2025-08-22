@@ -39,11 +39,12 @@ interface Feature {
   endDate: string;
   dependencies: string[];
   tags: string[];
+  team: string;
 }
 
 export default function FeatureTracker() {
   const { predictionData } = usePredictionStore();
-  
+
   // Load features from Zustand store and normalize status values
   const loadFeatures = () => {
     if (!predictionData || !predictionData.features) return [];
@@ -245,12 +246,7 @@ export default function FeatureTracker() {
                   <th className="text-left p-4 font-semibold text-blue-900">
                     Status
                   </th>
-                  <th className="text-left p-4 font-semibold text-blue-900">
-                    Priority
-                  </th>
-                  <th className="text-left p-4 font-semibold text-blue-900">
-                    Progress
-                  </th>
+
                   <th className="text-left p-4 font-semibold text-blue-900">
                     Story Points
                   </th>
@@ -283,22 +279,11 @@ export default function FeatureTracker() {
                     </td>
                     <td className="p-4">{getStatusBadge(feature.status)}</td>
                     <td className="p-4">
-                      {getPriorityBadge(feature.priority)}
-                    </td>
-                    <td className="p-4">
-                      <div className="space-y-2">
-                        <Progress value={feature.progress} className="w-20" />
-                        <span className="text-xs text-blue-600">
-                          {feature.progress}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4">
                       <Badge className="bg-blue-50 text-blue-700 border border-blue-200">
                         {feature.storyPoints} SP
                       </Badge>
                     </td>
-                    <td className="p-4 text-blue-700">{feature.assignedTo}</td>
+                    <td className="p-4 text-blue-700">{feature.team}</td>
                     <td className="p-4 text-blue-700">{feature.sprint}</td>
                     <td className="p-4">
                       <div className="flex space-x-2">

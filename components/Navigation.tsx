@@ -11,7 +11,6 @@ export default function Navigation() {
   const navItems = [
     { href: "/", label: "Estimation Form", icon: Calculator },
     { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/charts", label: "Analytics", icon: BarChart3 },
   ];
 
   return (

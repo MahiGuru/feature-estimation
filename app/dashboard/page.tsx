@@ -55,14 +55,14 @@ export default function Dashboard() {
   // State for active tab
   const [activeTab, setActiveTab] = useState("features");
 
-  // State for quarter visibility
+  // State for quarter visibility - will be initialized based on data
   const [visibleQuarters, setVisibleQuarters] = useState<{
     [key: string]: boolean;
   }>({
-    Q1: true,
-    Q2: true,
-    Q3: true,
-    Q4: true,
+    Q1: false,
+    Q2: false,
+    Q3: false,
+    Q4: false,
   });
 
   const updateFeatureAssignment = (
@@ -79,19 +79,39 @@ export default function Dashboard() {
     }));
   };
 
-  // Initialize random assignments for all features on component mount
+  // Initialize random assignments and quarter visibility based on data
   useEffect(() => {
     if (predictionData && predictionData.features) {
       const features = predictionData.features;
 
+      // Initialize feature assignments
       const initialAssignments: {
         [key: string]: { team?: string; assignedTo?: string };
       } = {};
       features.forEach((feature: any) => {
         initialAssignments[feature.id] = getRandomAssignment();
       });
-
       setFeatureAssignments(initialAssignments);
+
+      // Initialize quarter visibility based on which quarters have data
+      const quartersWithData: { [key: string]: boolean } = {
+        Q1: false,
+        Q2: false,
+        Q3: false,
+        Q4: false,
+      };
+
+      features.forEach((feature: any) => {
+        ["Q1", "Q2", "Q3", "Q4"].forEach((quarter) => {
+          const qData = feature.quarterlyConsumption?.[quarter];
+          if (qData && parseInt(qData.planned) > 0) {
+            quartersWithData[quarter] = true;
+          }
+        });
+      });
+
+      // Update visible quarters to only show quarters with data
+      setVisibleQuarters(quartersWithData);
     }
   }, [predictionData]);
 
@@ -150,6 +170,11 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <Navigation />
       <main className="container mx-auto px-6 py-12">
+        {/* Feature Tracker */}
+        <div className="my-5">
+          <FeatureTracker />
+        </div>
+
         {/* Feature Tracking Calendar */}
         <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-12 overflow-hidden">
           <CardHeader>
@@ -164,7 +189,7 @@ export default function Dashboard() {
               </CardTitle>
 
               {/* Quarter Filter Controls */}
-              <div className="flex items-center space-x-4 d-none">
+              <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Filter className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium text-gray-700">
@@ -1409,11 +1434,6 @@ export default function Dashboard() {
         <div className="my-5">
           {/* Resource Allocation & Team Performance */}
           <ResourceAllocation />
-        </div>
-
-        {/* Feature Tracker */}
-        <div className="my-5">
-          <FeatureTracker />
         </div>
 
         {/* API Response Display */}
