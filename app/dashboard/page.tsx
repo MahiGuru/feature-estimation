@@ -24,7 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar, Filter } from "lucide-react";
 
 export default function Dashboard() {
   // Zustand store
@@ -53,6 +54,16 @@ export default function Dashboard() {
 
   // State for active tab
   const [activeTab, setActiveTab] = useState("features");
+
+  // State for quarter visibility
+  const [visibleQuarters, setVisibleQuarters] = useState<{
+    [key: string]: boolean;
+  }>({
+    Q1: true,
+    Q2: true,
+    Q3: true,
+    Q4: true,
+  });
 
   const updateFeatureAssignment = (
     featureId: string,
@@ -142,14 +153,47 @@ export default function Dashboard() {
         {/* Feature Tracking Calendar */}
         <Card className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl mb-12 overflow-hidden">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-indigo-600" />
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-3">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-indigo-600" />
+                </div>
+                <span className="text-blue-900">
+                  Feature Timeline Calendar - Full Year View
+                </span>
+              </CardTitle>
+
+              {/* Quarter Filter Controls */}
+              <div className="flex items-center space-x-4 d-none">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    Show Quarters:
+                  </span>
+                </div>
+                {["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
+                  <div key={quarter} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`quarter-${quarter}`}
+                      checked={visibleQuarters[quarter]}
+                      onCheckedChange={(checked) => {
+                        setVisibleQuarters((prev) => ({
+                          ...prev,
+                          [quarter]: checked as boolean,
+                        }));
+                      }}
+                      className="border-gray-300"
+                    />
+                    <label
+                      htmlFor={`quarter-${quarter}`}
+                      className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+                    >
+                      {quarter}
+                    </label>
+                  </div>
+                ))}
               </div>
-              <span className="text-blue-900">
-                Feature Timeline Calendar - Full Year View
-              </span>
-            </CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {/* Use timeline data from Zustand store */}
@@ -157,7 +201,90 @@ export default function Dashboard() {
               (() => {
                 const features = predictionData.features;
                 const now = new Date();
-                const year = 2025;
+                const currentYear = 2025;
+
+                // Determine which quarters have data
+                const quartersWithData = ["Q1", "Q2", "Q3", "Q4"].filter(
+                  (quarter) => {
+                    return features.some((feature: any) => {
+                      const qData = feature.quarterlyConsumption[quarter];
+                      return qData && parseInt(qData.planned) > 0;
+                    });
+                  }
+                );
+
+                // Create rolling 4-quarter view with visibility filter
+                const getQuarterDisplay = () => {
+                  const display = [];
+                  const firstQuarterWithData = quartersWithData[0];
+
+                  let baseDisplay = [];
+
+                  if (!firstQuarterWithData) {
+                    // No data, show current year quarters
+                    baseDisplay = [
+                      { quarter: "Q1", year: currentYear },
+                      { quarter: "Q2", year: currentYear },
+                      { quarter: "Q3", year: currentYear },
+                      { quarter: "Q4", year: currentYear },
+                    ];
+                  } else if (firstQuarterWithData === "Q3") {
+                    // If data starts in Q3 or Q4, include next year's Q1/Q2
+                    baseDisplay = [
+                      { quarter: "Q3", year: currentYear },
+                      { quarter: "Q4", year: currentYear },
+                      { quarter: "Q1", year: currentYear + 1 },
+                      { quarter: "Q2", year: currentYear + 1 },
+                    ];
+                  } else if (firstQuarterWithData === "Q4") {
+                    baseDisplay = [
+                      { quarter: "Q4", year: currentYear },
+                      { quarter: "Q1", year: currentYear + 1 },
+                      { quarter: "Q2", year: currentYear + 1 },
+                      { quarter: "Q3", year: currentYear + 1 },
+                    ];
+                  } else if (firstQuarterWithData === "Q2") {
+                    baseDisplay = [
+                      { quarter: "Q2", year: currentYear },
+                      { quarter: "Q3", year: currentYear },
+                      { quarter: "Q4", year: currentYear },
+                      { quarter: "Q1", year: currentYear + 1 },
+                    ];
+                  } else {
+                    // Q1 or default
+                    baseDisplay = [
+                      { quarter: "Q1", year: currentYear },
+                      { quarter: "Q2", year: currentYear },
+                      { quarter: "Q3", year: currentYear },
+                      { quarter: "Q4", year: currentYear },
+                    ];
+                  }
+
+                  // Filter based on visible quarters
+                  return baseDisplay.filter(
+                    (item) => visibleQuarters[item.quarter]
+                  );
+                };
+
+                const quarterDisplay = getQuarterDisplay();
+                const year = currentYear; // Keep for backward compatibility
+
+                // Helper function to get quarter dates
+                const getQuarterDates = (quarter: string, year: number) => {
+                  const quarterMonths = {
+                    Q1: { start: 0, end: 2 }, // Jan-Mar
+                    Q2: { start: 3, end: 5 }, // Apr-Jun
+                    Q3: { start: 6, end: 8 }, // Jul-Sep
+                    Q4: { start: 9, end: 11 }, // Oct-Dec
+                  };
+                  const months =
+                    quarterMonths[quarter as keyof typeof quarterMonths];
+                  const lastDay = new Date(year, months.end + 1, 0).getDate();
+                  return {
+                    start: new Date(year, months.start, 1),
+                    end: new Date(year, months.end, lastDay),
+                  };
+                };
 
                 // Synchronized scrolling function for both Features and Teams tabs
                 const handleScroll = (e: any) => {
@@ -242,6 +369,37 @@ export default function Dashboard() {
 
                 const teamGroups = getFeaturesByTeam();
 
+                // Calculate total story points across all features
+                const totalPlannedPoints = features.reduce(
+                  (sum: number, feature: any) => {
+                    return (
+                      sum +
+                      Object.values(
+                        feature.quarterlyConsumption as Record<string, any>
+                      ).reduce(
+                        (s: number, q: any) => s + (parseInt(q?.planned) || 0),
+                        0
+                      )
+                    );
+                  },
+                  0
+                );
+
+                const totalConsumedPoints = features.reduce(
+                  (sum: number, feature: any) => {
+                    return (
+                      sum +
+                      Object.values(
+                        feature.quarterlyConsumption as Record<string, any>
+                      ).reduce(
+                        (s: number, q: any) => s + (parseInt(q?.consumed) || 0),
+                        0
+                      )
+                    );
+                  },
+                  0
+                );
+
                 return (
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <TabsList className="grid w-[400px] grid-cols-2 mb-4 ml-4">
@@ -260,8 +418,9 @@ export default function Dashboard() {
                             <h3 className="font-bold text-blue-900">
                               Features
                             </h3>
-                            <span className="text-xs text-blue-600">
-                              Total SP (Consumed/Planned)
+                            <span className="text-xs text-blue-600 font-semibold">
+                              Total: {totalConsumedPoints}/{totalPlannedPoints}{" "}
+                              SP
                             </span>
                           </div>
                           <div
@@ -295,18 +454,6 @@ export default function Dashboard() {
                               // Calculate quarter-specific dates for left display
                               const featureStart = new Date(feature.startDate);
                               const featureEnd = new Date(feature.endDate);
-                              const quarterStartDates = {
-                                Q1: new Date(year, 0, 1), // Jan 1
-                                Q2: new Date(year, 3, 1), // Apr 1
-                                Q3: new Date(year, 6, 1), // Jul 1
-                                Q4: new Date(year, 9, 1), // Oct 1
-                              };
-                              const quarterEndDates = {
-                                Q1: new Date(year, 2, 31), // Mar 31
-                                Q2: new Date(year, 5, 30), // Jun 30
-                                Q3: new Date(year, 8, 30), // Sep 30
-                                Q4: new Date(year, 11, 31), // Dec 31
-                              };
 
                               return (
                                 <div
@@ -517,19 +664,12 @@ export default function Dashboard() {
 
                         {/* Right Section - Timeline Grid */}
                         <div className="flex-1 bg-white flex flex-col">
-                          {/* Quarter Headers with Totals - Only show quarters with data */}
+                          {/* Quarter Headers with Rolling 4-Quarter View */}
                           <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
                             <div className="flex-1 flex">
-                              {["Q1", "Q2", "Q3", "Q4"]
-                                .filter((quarter) => {
-                                  // Only show quarters that have at least one feature with planned data
-                                  return features.some((feature: any) => {
-                                    const qData =
-                                      feature.quarterlyConsumption[quarter];
-                                    return qData && parseInt(qData.planned) > 0;
-                                  });
-                                })
-                                .map((quarter, index) => {
+                              {quarterDisplay.length > 0 ? (
+                                quarterDisplay.map((qItem, index) => {
+                                  const quarter = qItem.quarter;
                                   // Calculate quarterly totals for this quarter
                                   const quarterTotal = features.reduce(
                                     (sum: number, feature: any) => {
@@ -559,23 +699,46 @@ export default function Dashboard() {
                                     0
                                   );
 
+                                  // Get quarter date range
+                                  const qDates = getQuarterDates(
+                                    quarter,
+                                    qItem.year
+                                  );
+                                  const startDate =
+                                    qDates.start.toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                    });
+                                  const endDate = qDates.end.toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                    }
+                                  );
+
                                   return (
                                     <div
                                       key={quarter}
-                                      className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
+                                      className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1"
                                     >
-                                      <div className="font-bold text-lg text-blue-900">
-                                        {quarter}
+                                      <div className="font-bold text-base text-blue-900">
+                                        {quarter} {qItem.year}
                                       </div>
-                                      <div className="text-xs text-blue-600">
-                                        {year}
+                                      <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
+                                        {startDate} - {endDate}
                                       </div>
-                                      <div className="text-xs font-bold text-blue-900 mt-1">
+                                      <div className="text-xs font-bold text-blue-700 mt-1">
                                         {quarterConsumed}/{quarterTotal} SP
                                       </div>
                                     </div>
                                   );
-                                })}
+                                })
+                              ) : (
+                                <div className="flex-1 flex items-center justify-center text-gray-500">
+                                  <span>No quarters selected</span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -591,209 +754,217 @@ export default function Dashboard() {
                                   key={feature.id}
                                   className="relative h-[140px] border-b border-blue-100 group"
                                 >
-                                  {/* Quarter dividers - Only for quarters with data */}
+                                  {/* Quarter dividers for rolling view */}
                                   <div className="absolute inset-0 flex">
-                                    {["Q1", "Q2", "Q3", "Q4"]
-                                      .filter((quarter) => {
-                                        return features.some((f: any) => {
-                                          const qData =
-                                            f.quarterlyConsumption[quarter];
-                                          return (
-                                            qData && parseInt(qData.planned) > 0
-                                          );
-                                        });
-                                      })
-                                      .map((q, index) => (
+                                    {quarterDisplay.length > 0 &&
+                                      quarterDisplay.map((qItem, index) => (
                                         <div
-                                          key={q}
+                                          key={`${qItem.quarter}-${qItem.year}-divider`}
                                           className="flex-1 border-r border-blue-100 last:border-r-0"
                                         />
                                       ))}
                                   </div>
 
-                                  {/* Quarter-based bars - Only for quarters with data */}
+                                  {/* Quarter-based bars for rolling view */}
                                   <div className="absolute inset-0 flex">
-                                    {["Q1", "Q2", "Q3", "Q4"]
-                                      .filter((quarter) => {
-                                        return features.some((f: any) => {
+                                    {quarterDisplay.length > 0
+                                      ? quarterDisplay.map((qItem, qIndex) => {
+                                          const quarter = qItem.quarter;
                                           const qData =
-                                            f.quarterlyConsumption[quarter];
-                                          return (
-                                            qData && parseInt(qData.planned) > 0
+                                            feature.quarterlyConsumption[
+                                              quarter
+                                            ];
+                                          const plannedValue =
+                                            parseInt(qData?.planned) || 0;
+                                          const consumedValue =
+                                            parseInt(qData?.consumed) || 0;
+                                          if (!qData || plannedValue === 0)
+                                            return (
+                                              <div
+                                                key={quarter}
+                                                className="flex-1"
+                                              />
+                                            );
+
+                                          const hasConsumed = consumedValue > 0;
+                                          const consumedPercentage =
+                                            plannedValue > 0
+                                              ? (consumedValue / plannedValue) *
+                                                100
+                                              : 0;
+
+                                          // Calculate quarter date ranges for the specific year
+                                          const quarterDates = getQuarterDates(
+                                            quarter,
+                                            qItem.year
                                           );
-                                        });
-                                      })
-                                      .map((quarter: any, qIndex) => {
-                                        const qData =
-                                          feature.quarterlyConsumption[quarter];
-                                        const plannedValue =
-                                          parseInt(qData?.planned) || 0;
-                                        const consumedValue =
-                                          parseInt(qData?.consumed) || 0;
-                                        if (!qData || plannedValue === 0)
+
+                                          const featureStart = new Date(
+                                            feature.startDate
+                                          );
+                                          const featureEnd = new Date(
+                                            feature.endDate
+                                          );
+                                          const quarterStart =
+                                            quarterDates.start;
+                                          const quarterEnd = quarterDates.end;
+
+                                          // Calculate actual start and end dates for this quarter
+                                          const actualStartInQuarter =
+                                            featureStart > quarterStart
+                                              ? featureStart
+                                              : quarterStart;
+                                          const actualEndInQuarter =
+                                            featureEnd < quarterEnd
+                                              ? featureEnd
+                                              : quarterEnd;
+
+                                          // Check if feature is active in this quarter
+                                          const isActiveInQuarter =
+                                            featureStart <= quarterEnd &&
+                                            featureEnd >= quarterStart;
+
                                           return (
                                             <div
                                               key={quarter}
-                                              className="flex-1"
-                                            />
-                                          );
+                                              className="flex-1 relative flex items-center justify-center p-4"
+                                            >
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <div className="relative w-full h-12">
+                                                      {/* Planned bar (lighter shade) */}
+                                                      <div
+                                                        className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
+                                                          feature.status ===
+                                                          "completed"
+                                                            ? "bg-green-100 border-green-300"
+                                                            : feature.status ===
+                                                              "in-progress"
+                                                            ? "bg-yellow-100 border-yellow-300"
+                                                            : feature.status ===
+                                                              "blocked"
+                                                            ? "bg-red-100 border-red-300"
+                                                            : "bg-blue-100 border-blue-300"
+                                                        }`}
+                                                      >
+                                                        {/* Consumed bar (darker shade) */}
+                                                        {hasConsumed && (
+                                                          <div
+                                                            className={`absolute h-full rounded-lg shadow-md ${
+                                                              feature.status ===
+                                                              "completed"
+                                                                ? "bg-green-500"
+                                                                : feature.status ===
+                                                                  "in-progress"
+                                                                ? "bg-yellow-500"
+                                                                : feature.status ===
+                                                                  "blocked"
+                                                                ? "bg-red-500"
+                                                                : "bg-blue-500"
+                                                            }`}
+                                                            style={{
+                                                              width: `${consumedPercentage}%`,
+                                                            }}
+                                                          />
+                                                        )}
 
-                                        const hasConsumed = consumedValue > 0;
-                                        const consumedPercentage =
-                                          plannedValue > 0
-                                            ? (consumedValue / plannedValue) *
-                                              100
-                                            : 0;
-
-                                        // Calculate quarter date ranges
-                                        const quarterStartDates = {
-                                          Q1: new Date(year, 0, 1), // Jan 1
-                                          Q2: new Date(year, 3, 1), // Apr 1
-                                          Q3: new Date(year, 6, 1), // Jul 1
-                                          Q4: new Date(year, 9, 1), // Oct 1
-                                        };
-
-                                        const quarterEndDates = {
-                                          Q1: new Date(year, 2, 31), // Mar 31
-                                          Q2: new Date(year, 5, 30), // Jun 30
-                                          Q3: new Date(year, 8, 30), // Sep 30
-                                          Q4: new Date(year, 11, 31), // Dec 31
-                                        };
-
-                                        const featureStart = new Date(
-                                          feature.startDate
-                                        );
-                                        const featureEnd = new Date(
-                                          feature.endDate
-                                        );
-                                        const quarterStart =
-                                          quarterStartDates[quarter];
-                                        const quarterEnd =
-                                          quarterEndDates[quarter];
-
-                                        // Calculate actual start and end dates for this quarter
-                                        const actualStartInQuarter =
-                                          featureStart > quarterStart
-                                            ? featureStart
-                                            : quarterStart;
-                                        const actualEndInQuarter =
-                                          featureEnd < quarterEnd
-                                            ? featureEnd
-                                            : quarterEnd;
-
-                                        // Check if feature is active in this quarter
-                                        const isActiveInQuarter =
-                                          featureStart <= quarterEnd &&
-                                          featureEnd >= quarterStart;
-
-                                        return (
-                                          <div
-                                            key={quarter}
-                                            className="flex-1 relative flex items-center justify-center p-4"
-                                          >
-                                            <TooltipProvider>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <div className="relative w-full h-12">
-                                                    {/* Planned bar (lighter shade) */}
-                                                    <div
-                                                      className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
-                                                        feature.status ===
-                                                        "completed"
-                                                          ? "bg-green-100 border-green-300"
-                                                          : feature.status ===
-                                                            "in-progress"
-                                                          ? "bg-yellow-100 border-yellow-300"
-                                                          : feature.status ===
-                                                            "blocked"
-                                                          ? "bg-red-100 border-red-300"
-                                                          : "bg-blue-100 border-blue-300"
-                                                      }`}
-                                                    >
-                                                      {/* Consumed bar (darker shade) */}
-                                                      {hasConsumed && (
-                                                        <div
-                                                          className={`absolute h-full rounded-lg shadow-md ${
-                                                            feature.status ===
-                                                            "completed"
-                                                              ? "bg-green-500"
-                                                              : feature.status ===
-                                                                "in-progress"
-                                                              ? "bg-yellow-500"
-                                                              : feature.status ===
-                                                                "blocked"
-                                                              ? "bg-red-500"
-                                                              : "bg-blue-500"
-                                                          }`}
-                                                          style={{
-                                                            width: `${consumedPercentage}%`,
-                                                          }}
-                                                        />
-                                                      )}
-
-                                                      {/* Story points text */}
-                                                      <div className="absolute inset-0 flex items-center justify-center">
-                                                        <span className="text-sm font-bold text-gray-800 drop-shadow-sm">
-                                                          {consumedValue > 0
-                                                            ? `${consumedValue}/${plannedValue}`
-                                                            : plannedValue}{" "}
-                                                          SP
-                                                        </span>
+                                                        {/* Story points text */}
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                          <span className="text-sm font-bold text-gray-800 drop-shadow-sm">
+                                                            {consumedValue > 0
+                                                              ? `${consumedValue}/${plannedValue}`
+                                                              : plannedValue}{" "}
+                                                            SP
+                                                          </span>
+                                                        </div>
                                                       </div>
                                                     </div>
-                                                  </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                  <div className="text-sm">
-                                                    <p className="font-semibold">
-                                                      {feature.name} - {quarter}
-                                                    </p>
-                                                    <p>
-                                                      Planned: {plannedValue} SP
-                                                    </p>
-                                                    <p>
-                                                      Consumed: {consumedValue}{" "}
-                                                      SP
-                                                    </p>
-                                                    <p>
-                                                      Remaining:{" "}
-                                                      {plannedValue -
-                                                        consumedValue}{" "}
-                                                      SP
-                                                    </p>
-                                                    <p>
-                                                      Progress:{" "}
-                                                      {consumedPercentage.toFixed(
-                                                        0
+                                                  </TooltipTrigger>
+                                                  <TooltipContent>
+                                                    <div className="text-sm">
+                                                      <p className="font-semibold">
+                                                        {feature.name} -{" "}
+                                                        {quarter} {qItem.year}
+                                                      </p>
+                                                      <div className="text-xs text-gray-500 mb-2">
+                                                        {quarterStart.toLocaleDateString(
+                                                          "en-US",
+                                                          {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "numeric",
+                                                          }
+                                                        )}{" "}
+                                                        -{" "}
+                                                        {quarterEnd.toLocaleDateString(
+                                                          "en-US",
+                                                          {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "numeric",
+                                                          }
+                                                        )}
+                                                      </div>
+                                                      <p>
+                                                        Planned: {plannedValue}{" "}
+                                                        SP
+                                                      </p>
+                                                      <p>
+                                                        Consumed:{" "}
+                                                        {consumedValue} SP
+                                                      </p>
+                                                      <p>
+                                                        Remaining:{" "}
+                                                        {plannedValue -
+                                                          consumedValue}{" "}
+                                                        SP
+                                                      </p>
+                                                      <p>
+                                                        Progress:{" "}
+                                                        {consumedPercentage.toFixed(
+                                                          0
+                                                        )}
+                                                        %
+                                                      </p>
+                                                      {isActiveInQuarter && (
+                                                        <>
+                                                          <hr className="my-1" />
+                                                          <p className="text-xs font-semibold">
+                                                            Feature Timeline:
+                                                          </p>
+                                                          <p className="text-xs">
+                                                            Starts:{" "}
+                                                            {featureStart.toLocaleDateString(
+                                                              "en-US",
+                                                              {
+                                                                month: "short",
+                                                                day: "numeric",
+                                                                year: "numeric",
+                                                              }
+                                                            )}
+                                                          </p>
+                                                          <p className="text-xs">
+                                                            Ends:{" "}
+                                                            {featureEnd.toLocaleDateString(
+                                                              "en-US",
+                                                              {
+                                                                month: "short",
+                                                                day: "numeric",
+                                                                year: "numeric",
+                                                              }
+                                                            )}
+                                                          </p>
+                                                        </>
                                                       )}
-                                                      %
-                                                    </p>
-                                                    {isActiveInQuarter && (
-                                                      <>
-                                                        <hr className="my-1" />
-                                                        <p>
-                                                          Quarter Start:{" "}
-                                                          {actualStartInQuarter.toLocaleDateString()}
-                                                        </p>
-                                                        <p>
-                                                          Quarter End:{" "}
-                                                          {actualEndInQuarter.toLocaleDateString()}
-                                                        </p>
-                                                        <p>
-                                                          Feature Duration:{" "}
-                                                          {featureStart.toLocaleDateString()}{" "}
-                                                          -{" "}
-                                                          {featureEnd.toLocaleDateString()}
-                                                        </p>
-                                                      </>
-                                                    )}
-                                                  </div>
-                                                </TooltipContent>
-                                              </Tooltip>
-                                            </TooltipProvider>
-                                          </div>
-                                        );
-                                      })}
+                                                    </div>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
+                                            </div>
+                                          );
+                                        })
+                                      : null}
                                   </div>
                                 </div>
                               );
@@ -812,8 +983,9 @@ export default function Dashboard() {
                         <div className="w-1/3 border-r border-blue-200 bg-blue-50 flex flex-col">
                           <div className="h-16 px-4 flex items-center justify-between border-b border-blue-200 bg-blue-100 flex-shrink-0">
                             <h3 className="font-bold text-blue-900">Teams</h3>
-                            <span className="text-xs text-blue-600">
-                              Features & SP
+                            <span className="text-xs text-blue-600 font-semibold">
+                              Total: {totalConsumedPoints}/{totalPlannedPoints}{" "}
+                              SP
                             </span>
                           </div>
                           <div
@@ -946,43 +1118,78 @@ export default function Dashboard() {
 
                         {/* Right Section - Timeline Grid (same as Features tab) */}
                         <div className="flex-1 bg-white flex flex-col">
-                          {/* Quarter Headers with Totals */}
+                          {/* Quarter Headers with Totals - Rolling View */}
                           <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
-                            {["Q1", "Q2", "Q3", "Q4"].map((quarter) => {
-                              // Calculate quarterly totals across all teams
-                              const quarterTotal = Object.values(teamGroups)
-                                .flat()
-                                .reduce((sum: number, feature: any) => {
-                                  const qData =
-                                    feature.quarterlyConsumption[quarter];
-                                  return sum + (qData ? qData.planned : 0);
-                                }, 0);
+                            {quarterDisplay.length > 0 ? (
+                              quarterDisplay.map((qItem) => {
+                                const quarter = qItem.quarter;
+                                // Calculate quarterly totals across all teams
+                                const quarterTotal = Object.values(teamGroups)
+                                  .flat()
+                                  .reduce((sum: number, feature: any) => {
+                                    const qData =
+                                      feature.quarterlyConsumption[quarter];
+                                    return (
+                                      sum +
+                                      (qData ? parseInt(qData.planned) || 0 : 0)
+                                    );
+                                  }, 0);
 
-                              const quarterConsumed = Object.values(teamGroups)
-                                .flat()
-                                .reduce((sum: number, feature: any) => {
-                                  const qData =
-                                    feature.quarterlyConsumption[quarter];
-                                  return sum + (qData ? qData.consumed : 0);
-                                }, 0);
+                                const quarterConsumed = Object.values(
+                                  teamGroups
+                                )
+                                  .flat()
+                                  .reduce((sum: number, feature: any) => {
+                                    const qData =
+                                      feature.quarterlyConsumption[quarter];
+                                    return (
+                                      sum +
+                                      (qData
+                                        ? parseInt(qData.consumed) || 0
+                                        : 0)
+                                    );
+                                  }, 0);
 
-                              return (
-                                <div
-                                  key={quarter}
-                                  className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0"
-                                >
-                                  <div className="font-bold text-lg text-blue-900">
-                                    {quarter}
+                                // Get quarter date range for teams tab
+                                const qDates = getQuarterDates(
+                                  quarter,
+                                  qItem.year
+                                );
+                                const startDate =
+                                  qDates.start.toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  });
+                                const endDate = qDates.end.toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                );
+
+                                return (
+                                  <div
+                                    key={quarter}
+                                    className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1"
+                                  >
+                                    <div className="font-bold text-base text-blue-900">
+                                      {quarter} {qItem.year}
+                                    </div>
+                                    <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
+                                      {startDate} - {endDate}
+                                    </div>
+                                    <div className="text-xs font-bold text-blue-700 mt-1">
+                                      {quarterConsumed}/{quarterTotal} SP
+                                    </div>
                                   </div>
-                                  <div className="text-xs text-blue-600">
-                                    {year}
-                                  </div>
-                                  <div className="text-xs font-bold text-blue-900 mt-1">
-                                    {quarterConsumed}/{quarterTotal} SP
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })
+                            ) : (
+                              <div className="flex-1 flex items-center justify-center text-gray-500">
+                                <span>No quarters selected</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Teams Timeline Grid - Scrollable content */}
@@ -999,12 +1206,13 @@ export default function Dashboard() {
                                   {/* Team Header Row */}
                                   <div className="relative h-[60px] border-b border-blue-200 bg-blue-100">
                                     <div className="absolute inset-0 flex">
-                                      {[0, 1, 2, 3].map((q) => (
-                                        <div
-                                          key={q}
-                                          className="flex-1 border-r border-blue-200 last:border-r-0"
-                                        />
-                                      ))}
+                                      {quarterDisplay.length > 0 &&
+                                        quarterDisplay.map((qItem) => (
+                                          <div
+                                            key={`${qItem.quarter}-${qItem.year}-team-header`}
+                                            className="flex-1 border-r border-blue-200 last:border-r-0"
+                                          />
+                                        ))}
                                     </div>
                                   </div>
 
@@ -1014,124 +1222,134 @@ export default function Dashboard() {
                                       key={feature.id}
                                       className="relative h-[100px] border-b border-blue-50 group"
                                     >
-                                      {/* Quarter dividers */}
+                                      {/* Quarter dividers - Rolling View */}
                                       <div className="absolute inset-0 flex">
-                                        {[0, 1, 2, 3].map((q) => (
-                                          <div
-                                            key={q}
-                                            className="flex-1 border-r border-blue-100 last:border-r-0"
-                                          />
-                                        ))}
+                                        {quarterDisplay.length > 0 &&
+                                          quarterDisplay.map((qItem) => (
+                                            <div
+                                              key={`${qItem.quarter}-${qItem.year}-team-div`}
+                                              className="flex-1 border-r border-blue-100 last:border-r-0"
+                                            />
+                                          ))}
                                       </div>
 
-                                      {/* Quarter-based bars (same logic as Features tab) */}
+                                      {/* Quarter-based bars - Rolling View */}
                                       <div className="absolute inset-0 flex">
-                                        {["Q1", "Q2", "Q3", "Q4"].map(
-                                          (quarter: any, qIndex) => {
-                                            const qData =
-                                              feature.quarterlyConsumption[
-                                                quarter
-                                              ];
-                                            if (!qData || qData.planned === 0)
-                                              return (
-                                                <div
-                                                  key={quarter}
-                                                  className="flex-1"
-                                                />
-                                              );
+                                        {quarterDisplay.length > 0
+                                          ? quarterDisplay.map(
+                                              (qItem, qIndex) => {
+                                                const quarter = qItem.quarter;
+                                                const qData =
+                                                  feature.quarterlyConsumption[
+                                                    quarter
+                                                  ];
+                                                const plannedVal =
+                                                  parseInt(qData?.planned) || 0;
+                                                const consumedVal =
+                                                  parseInt(qData?.consumed) ||
+                                                  0;
+                                                if (!qData || plannedVal === 0)
+                                                  return (
+                                                    <div
+                                                      key={quarter}
+                                                      className="flex-1"
+                                                    />
+                                                  );
 
-                                            // Same bar rendering logic as Features tab
-                                            const consumedPercentage =
-                                              qData.planned > 0
-                                                ? (qData.consumed /
-                                                    qData.planned) *
-                                                  100
-                                                : 0;
+                                                // Same bar rendering logic as Features tab
+                                                const consumedPercentage =
+                                                  plannedVal > 0
+                                                    ? (consumedVal /
+                                                        plannedVal) *
+                                                      100
+                                                    : 0;
 
-                                            return (
-                                              <div
-                                                key={quarter}
-                                                className="flex-1 p-4"
-                                              >
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <div className="relative h-full">
-                                                        <div
-                                                          className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
-                                                            feature.status ===
-                                                            "completed"
-                                                              ? "bg-green-100 border-green-300"
-                                                              : feature.status ===
-                                                                "in-progress"
-                                                              ? "bg-yellow-100 border-yellow-300"
-                                                              : feature.status ===
-                                                                "blocked"
-                                                              ? "bg-red-100 border-red-300"
-                                                              : "bg-blue-100 border-blue-300"
-                                                          }`}
-                                                        >
-                                                          {qData.consumed >
-                                                            0 && (
+                                                return (
+                                                  <div
+                                                    key={quarter}
+                                                    className="flex-1 p-4"
+                                                  >
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <div className="relative h-full">
                                                             <div
-                                                              className={`absolute h-full rounded-lg shadow-md ${
+                                                              className={`absolute w-full h-full rounded-lg shadow-lg border-2 ${
                                                                 feature.status ===
                                                                 "completed"
-                                                                  ? "bg-green-500"
+                                                                  ? "bg-green-100 border-green-300"
                                                                   : feature.status ===
                                                                     "in-progress"
-                                                                  ? "bg-yellow-500"
+                                                                  ? "bg-yellow-100 border-yellow-300"
                                                                   : feature.status ===
                                                                     "blocked"
-                                                                  ? "bg-red-500"
-                                                                  : "bg-blue-500"
+                                                                  ? "bg-red-100 border-red-300"
+                                                                  : "bg-blue-100 border-blue-300"
                                                               }`}
-                                                              style={{
-                                                                width: `${consumedPercentage}%`,
-                                                              }}
-                                                            />
-                                                          )}
-                                                          <div className="absolute inset-0 flex items-center justify-center">
-                                                            <span className="text-xs font-bold text-gray-800 drop-shadow-sm">
+                                                            >
                                                               {qData.consumed >
-                                                              0
-                                                                ? `${qData.consumed}/${qData.planned}`
-                                                                : qData.planned}{" "}
-                                                              SP
-                                                            </span>
+                                                                0 && (
+                                                                <div
+                                                                  className={`absolute h-full rounded-lg shadow-md ${
+                                                                    feature.status ===
+                                                                    "completed"
+                                                                      ? "bg-green-500"
+                                                                      : feature.status ===
+                                                                        "in-progress"
+                                                                      ? "bg-yellow-500"
+                                                                      : feature.status ===
+                                                                        "blocked"
+                                                                      ? "bg-red-500"
+                                                                      : "bg-blue-500"
+                                                                  }`}
+                                                                  style={{
+                                                                    width: `${consumedPercentage}%`,
+                                                                  }}
+                                                                />
+                                                              )}
+                                                              <div className="absolute inset-0 flex items-center justify-center">
+                                                                <span className="text-xs font-bold text-gray-800 drop-shadow-sm">
+                                                                  {qData.consumed >
+                                                                  0
+                                                                    ? `${qData.consumed}/${qData.planned}`
+                                                                    : qData.planned}{" "}
+                                                                  SP
+                                                                </span>
+                                                              </div>
+                                                            </div>
                                                           </div>
-                                                        </div>
-                                                      </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      <div className="text-sm">
-                                                        <p className="font-semibold">
-                                                          {feature.name} -{" "}
-                                                          {quarter}
-                                                        </p>
-                                                        <p>
-                                                          Planned:{" "}
-                                                          {qData.planned} SP
-                                                        </p>
-                                                        <p>
-                                                          Consumed:{" "}
-                                                          {qData.consumed} SP
-                                                        </p>
-                                                        <p>
-                                                          Progress:{" "}
-                                                          {consumedPercentage.toFixed(
-                                                            0
-                                                          )}
-                                                          %
-                                                        </p>
-                                                      </div>
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
-                                              </div>
-                                            );
-                                          }
-                                        )}
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <div className="text-sm">
+                                                            <p className="font-semibold">
+                                                              {feature.name} -{" "}
+                                                              {quarter}
+                                                            </p>
+                                                            <p>
+                                                              Planned:{" "}
+                                                              {qData.planned} SP
+                                                            </p>
+                                                            <p>
+                                                              Consumed:{" "}
+                                                              {qData.consumed}{" "}
+                                                              SP
+                                                            </p>
+                                                            <p>
+                                                              Progress:{" "}
+                                                              {consumedPercentage.toFixed(
+                                                                0
+                                                              )}
+                                                              %
+                                                            </p>
+                                                          </div>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  </div>
+                                                );
+                                              }
+                                            )
+                                          : null}
                                       </div>
                                     </div>
                                   ))}

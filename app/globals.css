@@ -114,3 +114,7 @@
 .feature-status-blocked {
   @apply bg-red-100 text-red-800 border border-red-200;
 }
+
+.d-none {
+  display: none;
+}
