@@ -43,24 +43,32 @@ export default function FeaturesGraphs() {
 
   // Transform feature data for charts
   const getChartData = (feature: any): ChartData[] => {
+    if (!feature.quarterlyConsumption) return [];
     return Object.entries(feature.quarterlyConsumption)
-      .map(([quarter, data]: [string, any]) => ({
-        quarter,
-        planned: data.planned,
-        consumed: data.consumed,
-        remaining: data.planned - data.consumed,
-      }))
+      .map(([quarterKey, data]: [string, any]) => {
+        // Extract quarter name from key like "Q3_2025" -> "Q3 2025"
+        const [quarter, year] = quarterKey.split('_');
+        const displayQuarter = year ? `${quarter} ${year}` : quarter;
+        return {
+          quarter: displayQuarter,
+          planned: parseInt(data.planned) || 0,
+          consumed: parseInt(data.consumed) || 0,
+          remaining: (parseInt(data.planned) || 0) - (parseInt(data.consumed) || 0),
+        };
+      })
       .filter((item) => item.planned > 0); // Only show quarters with planned work
   };
 
   // Get pie chart data for a feature
   const getPieData = (feature: any) => {
+    if (!feature.quarterlyConsumption) return [];
+    
     const totalPlanned = Object.values(
       feature.quarterlyConsumption as Record<string, any>
-    ).reduce((sum: number, q: any) => sum + (q?.planned || 0), 0);
+    ).reduce((sum: number, q: any) => sum + (parseInt(q?.planned) || 0), 0);
     const totalConsumed = Object.values(
       feature.quarterlyConsumption as Record<string, any>
-    ).reduce((sum: number, q: any) => sum + (q?.consumed || 0), 0);
+    ).reduce((sum: number, q: any) => sum + (parseInt(q?.consumed) || 0), 0);
     const totalRemaining = totalPlanned - totalConsumed;
 
     return [

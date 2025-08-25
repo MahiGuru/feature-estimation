@@ -25,11 +25,13 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Filter } from "lucide-react";
+import { Calendar, Filter, Info } from "lucide-react";
+// Import demo data for fallback
+import * as demoDataModule from "@/dummy/responsedata.json";
 
 export default function Dashboard() {
   // Zustand store
-  const { predictionData, clearData } = usePredictionStore();
+  const { predictionData, clearData, setPredictionData } = usePredictionStore();
 
   // Teams and people for assignment
   const teams = ["Magnolia", "Chambers Bay", "Pebble Beach", "Fairway"];
@@ -58,12 +60,30 @@ export default function Dashboard() {
   // State for quarter visibility - will be initialized based on data
   const [visibleQuarters, setVisibleQuarters] = useState<{
     [key: string]: boolean;
-  }>({
-    Q1: false,
-    Q2: false,
-    Q3: false,
-    Q4: false,
-  });
+  }>({});
+
+  // Function to force reload demo data
+  const reloadDemoData = async () => {
+    // Clear everything first
+    clearData();
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
+
+    // Dynamically import fresh data from public directory
+    try {
+      const response = await fetch("/responsedata.json");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const freshData = await response.json();
+      setPredictionData(freshData);
+    } catch (error) {
+      // Use the imported demo data as fallback
+      const demoData = JSON.parse(JSON.stringify(demoDataModule));
+      setPredictionData(demoData);
+    }
+  };
 
   const updateFeatureAssignment = (
     featureId: string,
@@ -94,26 +114,61 @@ export default function Dashboard() {
       setFeatureAssignments(initialAssignments);
 
       // Initialize quarter visibility based on which quarters have data
-      const quartersWithData: { [key: string]: boolean } = {
-        Q1: false,
-        Q2: false,
-        Q3: false,
-        Q4: false,
-      };
+      const quartersWithData: { [key: string]: boolean } = {};
 
       features.forEach((feature: any) => {
-        ["Q1", "Q2", "Q3", "Q4"].forEach((quarter) => {
-          const qData = feature.quarterlyConsumption?.[quarter];
-          if (qData && parseInt(qData.planned) > 0) {
-            quartersWithData[quarter] = true;
-          }
-        });
+        if (feature.quarterlyConsumption) {
+          Object.keys(feature.quarterlyConsumption).forEach((quarterKey) => {
+            const qData = feature.quarterlyConsumption[quarterKey];
+            const plannedValue = qData?.planned;
+            const parsedPlanned =
+              typeof plannedValue === "string"
+                ? parseInt(plannedValue)
+                : plannedValue;
+            if (qData && parsedPlanned > 0) {
+              quartersWithData[quarterKey] = true;
+            }
+          });
+        }
       });
 
-      // Update visible quarters to only show quarters with data
+      // Update visible quarters to show ALL quarters with data by default
+      const sortedQuarters = Object.keys(quartersWithData).sort((a, b) => {
+        const [aQ, aY] = a.split("_");
+        const [bQ, bY] = b.split("_");
+        const yearDiff = parseInt(aY) - parseInt(bY);
+        if (yearDiff !== 0) return yearDiff;
+        return parseInt(aQ.substring(1)) - parseInt(bQ.substring(1));
+      });
+
+      // Set all quarters as visible by default
       setVisibleQuarters(quartersWithData);
     }
   }, [predictionData]);
+
+  // Force re-sync scroll elements when data changes
+  useEffect(() => {
+    if (predictionData && Object.keys(visibleQuarters).length > 0) {
+      setTimeout(() => {
+        const elements = {
+          leftScroll: document.getElementById("left-scroll"),
+          rightHeader: document.getElementById("right-header-scroll"),
+          rightBody: document.getElementById("right-body-scroll"),
+          teamsLeft: document.getElementById("teams-left-scroll"),
+          teamsHeader: document.getElementById("teams-header-scroll"),
+          teamsBody: document.getElementById("teams-body-scroll"),
+        };
+
+        // Reset all scroll positions to ensure sync
+        Object.entries(elements).forEach(([name, element]) => {
+          if (element) {
+            element.scrollLeft = 0;
+            element.scrollTop = 0;
+          }
+        });
+      }, 200);
+    }
+  }, [predictionData, visibleQuarters]);
 
   // Show no data state if there's no prediction data
   if (!predictionData) {
@@ -166,9 +221,39 @@ export default function Dashboard() {
     );
   }
 
+  // Check if we're in demo mode by looking for the demo data structure
+  const isDemoMode =
+    predictionData?.projectEstimation?.estimationId === "EST-2025-001";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <Navigation />
+
+      {/* Demo Mode Banner */}
+      {/* {isDemoMode && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <div className="container mx-auto px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Info className="w-5 h-5" />
+                <span className="font-medium">
+                  Demo Mode Active - Displaying sample data from
+                  dummy/responsedata.json
+                </span>
+              </div>
+              <Button
+                onClick={reloadDemoData}
+                variant="outline"
+                size="sm"
+                className="bg-white text-blue-600 hover:bg-blue-50"
+              >
+                Force Reload Data
+              </Button>
+            </div>
+          </div>
+        </div>
+      )} */}
+
       <main className="container mx-auto px-6 py-12">
         {/* Feature Tracker */}
         <div className="my-5">
@@ -184,39 +269,62 @@ export default function Dashboard() {
                   <Calendar className="w-5 h-5 text-indigo-600" />
                 </div>
                 <span className="text-blue-900">
-                  Feature Timeline Calendar - Full Year View
+                  Feature Timeline Calendar - Multi-Year View
                 </span>
               </CardTitle>
 
               {/* Quarter Filter Controls */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 flex-wrap">
                 <div className="flex items-center space-x-2">
                   <Filter className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium text-gray-700">
                     Show Quarters:
                   </span>
                 </div>
-                {["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
-                  <div key={quarter} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`quarter-${quarter}`}
-                      checked={visibleQuarters[quarter]}
-                      onCheckedChange={(checked) => {
-                        setVisibleQuarters((prev) => ({
-                          ...prev,
-                          [quarter]: checked as boolean,
-                        }));
-                      }}
-                      className="border-gray-300"
-                    />
-                    <label
-                      htmlFor={`quarter-${quarter}`}
-                      className="text-sm font-medium text-gray-700 cursor-pointer select-none"
-                    >
-                      {quarter}
-                    </label>
-                  </div>
-                ))}
+                {Object.keys(visibleQuarters)
+                  .sort((a, b) => {
+                    const [aQuarter, aYear] = a.split("_");
+                    const [bQuarter, bYear] = b.split("_");
+
+                    // First compare by year
+                    const yearDiff = parseInt(aYear) - parseInt(bYear);
+                    if (yearDiff !== 0) return yearDiff;
+
+                    // Then compare by quarter number (Q1, Q2, Q3, Q4)
+                    const aQuarterNum = parseInt(aQuarter.substring(1));
+                    const bQuarterNum = parseInt(bQuarter.substring(1));
+                    return aQuarterNum - bQuarterNum;
+                  })
+                  .map((quarterKey) => {
+                    // Extract display name: "Q3_2025" -> "Q3 2025"
+                    const [quarter, year] = quarterKey.split("_");
+                    const displayName = year ? `${quarter} ${year}` : quarter;
+
+                    return (
+                      <div
+                        key={quarterKey}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={`quarter-${quarterKey}`}
+                          checked={visibleQuarters[quarterKey]}
+                          onCheckedChange={(checked) => {
+                            setVisibleQuarters((prev) => ({
+                              ...prev,
+                              [quarterKey]: checked as boolean,
+                            }));
+                          }}
+                          className="border-gray-300"
+                        />
+                        <label
+                          htmlFor={`quarter-${quarterKey}`}
+                          className="text-sm font-medium text-gray-700 cursor-pointer select-none whitespace-nowrap"
+                        >
+                          {displayName}
+                        </label>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </CardHeader>
@@ -228,67 +336,68 @@ export default function Dashboard() {
                 const now = new Date();
                 const currentYear = 2025;
 
-                // Determine which quarters have data
-                const quartersWithData = ["Q1", "Q2", "Q3", "Q4"].filter(
-                  (quarter) => {
-                    return features.some((feature: any) => {
-                      const qData = feature.quarterlyConsumption[quarter];
-                      return qData && parseInt(qData.planned) > 0;
+                // Determine which quarters have data - get all quarter keys with data
+                const allQuarterKeys = new Set<string>();
+
+                features.forEach((feature: any) => {
+                  if (feature.quarterlyConsumption) {
+                    const allQuarters = Object.keys(
+                      feature.quarterlyConsumption
+                    );
+
+                    allQuarters.forEach((qKey) => {
+                      const qData = feature.quarterlyConsumption[qKey];
+                      const plannedValue = qData?.planned;
+                      const parsedPlanned =
+                        typeof plannedValue === "string"
+                          ? parseInt(plannedValue)
+                          : plannedValue;
+
+                      if (qData && parsedPlanned > 0) {
+                        allQuarterKeys.add(qKey);
+                      }
                     });
+                  }
+                });
+
+                // Sort quarters chronologically (by year then by quarter number)
+                const quartersWithData = Array.from(allQuarterKeys).sort(
+                  (a, b) => {
+                    const [aQuarter, aYear] = a.split("_");
+                    const [bQuarter, bYear] = b.split("_");
+
+                    // First compare by year
+                    const yearDiff = parseInt(aYear) - parseInt(bYear);
+                    if (yearDiff !== 0) return yearDiff;
+
+                    // Then compare by quarter number (Q1, Q2, Q3, Q4)
+                    const aQuarterNum = parseInt(aQuarter.substring(1));
+                    const bQuarterNum = parseInt(bQuarter.substring(1));
+                    return aQuarterNum - bQuarterNum;
                   }
                 );
 
-                // Create rolling 4-quarter view with visibility filter
+                // Create display from all quarters with data
                 const getQuarterDisplay = () => {
-                  const display = [];
-                  const firstQuarterWithData = quartersWithData[0];
-
-                  let baseDisplay = [];
-
-                  if (!firstQuarterWithData) {
-                    // No data, show current year quarters
-                    baseDisplay = [
-                      { quarter: "Q1", year: currentYear },
-                      { quarter: "Q2", year: currentYear },
-                      { quarter: "Q3", year: currentYear },
-                      { quarter: "Q4", year: currentYear },
-                    ];
-                  } else if (firstQuarterWithData === "Q3") {
-                    // If data starts in Q3 or Q4, include next year's Q1/Q2
-                    baseDisplay = [
-                      { quarter: "Q3", year: currentYear },
-                      { quarter: "Q4", year: currentYear },
-                      { quarter: "Q1", year: currentYear + 1 },
-                      { quarter: "Q2", year: currentYear + 1 },
-                    ];
-                  } else if (firstQuarterWithData === "Q4") {
-                    baseDisplay = [
-                      { quarter: "Q4", year: currentYear },
-                      { quarter: "Q1", year: currentYear + 1 },
-                      { quarter: "Q2", year: currentYear + 1 },
-                      { quarter: "Q3", year: currentYear + 1 },
-                    ];
-                  } else if (firstQuarterWithData === "Q2") {
-                    baseDisplay = [
-                      { quarter: "Q2", year: currentYear },
-                      { quarter: "Q3", year: currentYear },
-                      { quarter: "Q4", year: currentYear },
-                      { quarter: "Q1", year: currentYear + 1 },
-                    ];
-                  } else {
-                    // Q1 or default
-                    baseDisplay = [
-                      { quarter: "Q1", year: currentYear },
-                      { quarter: "Q2", year: currentYear },
-                      { quarter: "Q3", year: currentYear },
-                      { quarter: "Q4", year: currentYear },
-                    ];
+                  if (quartersWithData.length === 0) {
+                    return [];
                   }
 
-                  // Filter based on visible quarters
-                  return baseDisplay.filter(
-                    (item) => visibleQuarters[item.quarter]
+                  // Convert quarter keys to display format
+                  const baseDisplay = quartersWithData.map((qKey) => {
+                    const [quarter, year] = qKey.split("_");
+                    return {
+                      quarter: quarter,
+                      year: parseInt(year) || currentYear,
+                      quarterKey: qKey,
+                    };
+                  });
+
+                  // Filter based on visible quarters (using quarterKey)
+                  const filteredDisplay = baseDisplay.filter(
+                    (item) => visibleQuarters[item.quarterKey]
                   );
+                  return filteredDisplay;
                 };
 
                 const quarterDisplay = getQuarterDisplay();
@@ -311,39 +420,7 @@ export default function Dashboard() {
                   };
                 };
 
-                // Synchronized scrolling function for both Features and Teams tabs
-                const handleScroll = (e: any) => {
-                  const scrollTop = e.currentTarget.scrollTop;
-
-                  // Features tab scrolling
-                  const leftScroll = document.getElementById("left-scroll");
-                  const rightScroll = document.getElementById("right-scroll");
-
-                  // Teams tab scrolling
-                  const teamsLeftScroll =
-                    document.getElementById("teams-left-scroll");
-                  const teamsRightScroll =
-                    document.getElementById("teams-right-scroll");
-
-                  if (e.currentTarget.id === "left-scroll" && rightScroll) {
-                    rightScroll.scrollTop = scrollTop;
-                  } else if (
-                    e.currentTarget.id === "right-scroll" &&
-                    leftScroll
-                  ) {
-                    leftScroll.scrollTop = scrollTop;
-                  } else if (
-                    e.currentTarget.id === "teams-left-scroll" &&
-                    teamsRightScroll
-                  ) {
-                    teamsRightScroll.scrollTop = scrollTop;
-                  } else if (
-                    e.currentTarget.id === "teams-right-scroll" &&
-                    teamsLeftScroll
-                  ) {
-                    teamsLeftScroll.scrollTop = scrollTop;
-                  }
-                };
+                // Note: Scroll synchronization is now handled by inline event handlers for better performance
 
                 const getSizeInfo = (size: string) => {
                   const sizeColors: Record<string, string> = {
@@ -451,7 +528,22 @@ export default function Dashboard() {
                           <div
                             id="left-scroll"
                             className="flex-1 overflow-y-auto pb-20"
-                            onScroll={handleScroll}
+                            onScroll={(e) => {
+                              try {
+                                const rightBodyScroll =
+                                  document.getElementById("right-body-scroll");
+                                if (
+                                  rightBodyScroll &&
+                                  rightBodyScroll.scrollTop !==
+                                    e.currentTarget.scrollTop
+                                ) {
+                                  rightBodyScroll.scrollTop =
+                                    e.currentTarget.scrollTop;
+                                }
+                              } catch (error) {
+                                // Silently handle scroll sync errors
+                              }
+                            }}
                           >
                             {features.map((feature: any, index: number) => {
                               // Calculate totals from quarterly data
@@ -542,7 +634,7 @@ export default function Dashboard() {
 
                                           return (
                                             <div
-                                              key={quarter}
+                                              key={quarterKey}
                                               className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border"
                                             >
                                               <span className="font-medium">
@@ -688,392 +780,478 @@ export default function Dashboard() {
                         </div>
 
                         {/* Right Section - Timeline Grid */}
-                        <div className="flex-1 bg-white flex flex-col">
-                          {/* Quarter Headers with Rolling 4-Quarter View */}
-                          <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
-                            <div className="flex-1 flex">
-                              {quarterDisplay.length > 0 ? (
-                                quarterDisplay.map((qItem, index) => {
-                                  const quarter = qItem.quarter;
-                                  // Calculate quarterly totals for this quarter
-                                  const quarterTotal = features.reduce(
-                                    (sum: number, feature: any) => {
-                                      const qData =
-                                        feature.quarterlyConsumption[quarter];
-                                      return (
-                                        sum +
-                                        (qData
-                                          ? parseInt(qData.planned) || 0
-                                          : 0)
-                                      );
-                                    },
-                                    0
-                                  );
+                        <div className="flex-1 bg-white flex flex-col overflow-hidden">
+                          {/* Single wrapper for both header and content with synchronized scrolling */}
+                          <div className="flex-1 flex flex-col overflow-hidden">
+                            {/* Header with horizontal scroll */}
+                            <div
+                              className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100"
+                              id="right-header-scroll"
+                              onScroll={(e) => {
+                                try {
+                                  const bodyScroll =
+                                    document.getElementById(
+                                      "right-body-scroll"
+                                    );
+                                  if (
+                                    bodyScroll &&
+                                    bodyScroll.scrollLeft !==
+                                      e.currentTarget.scrollLeft
+                                  ) {
+                                    bodyScroll.scrollLeft =
+                                      e.currentTarget.scrollLeft;
+                                  }
+                                } catch (error) {
+                                  // Silently handle scroll sync errors
+                                }
+                              }}
+                            >
+                              <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0 min-w-max">
+                                {quarterDisplay.length > 0 ? (
+                                  quarterDisplay.map((qItem, index) => {
+                                    const quarter = qItem.quarter;
+                                    const quarterKey = qItem.quarterKey;
+                                    // Calculate quarterly totals for this quarter
+                                    const quarterTotal = features.reduce(
+                                      (sum: number, feature: any) => {
+                                        if (!feature.quarterlyConsumption)
+                                          return sum;
+                                        // Use the specific quarter key from qItem
+                                        const qData =
+                                          feature.quarterlyConsumption[
+                                            quarterKey
+                                          ];
+                                        return (
+                                          sum +
+                                          (qData
+                                            ? parseInt(qData.planned) || 0
+                                            : 0)
+                                        );
+                                      },
+                                      0
+                                    );
 
-                                  const quarterConsumed = features.reduce(
-                                    (sum: number, feature: any) => {
-                                      const qData =
-                                        feature.quarterlyConsumption[quarter];
-                                      return (
-                                        sum +
-                                        (qData
-                                          ? parseInt(qData.consumed) || 0
-                                          : 0)
-                                      );
-                                    },
-                                    0
-                                  );
+                                    const quarterConsumed = features.reduce(
+                                      (sum: number, feature: any) => {
+                                        if (!feature.quarterlyConsumption)
+                                          return sum;
+                                        // Use the specific quarter key from qItem
+                                        const qData =
+                                          feature.quarterlyConsumption[
+                                            quarterKey
+                                          ];
+                                        return (
+                                          sum +
+                                          (qData
+                                            ? parseInt(qData.consumed) || 0
+                                            : 0)
+                                        );
+                                      },
+                                      0
+                                    );
 
-                                  // Get quarter date range
-                                  const qDates = getQuarterDates(
-                                    quarter,
-                                    qItem.year
-                                  );
-                                  const startDate =
-                                    qDates.start.toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    });
-                                  const endDate = qDates.end.toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                    }
-                                  );
+                                    // Get quarter date range
+                                    const qDates = getQuarterDates(
+                                      quarter,
+                                      qItem.year
+                                    );
+                                    const startDate =
+                                      qDates.start.toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                      });
+                                    const endDate =
+                                      qDates.end.toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                      });
 
+                                    return (
+                                      <div
+                                        key={quarterKey}
+                                        className="flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1 min-w-[200px]"
+                                      >
+                                        <div className="font-bold text-base text-blue-900">
+                                          {quarter} {qItem.year}
+                                        </div>
+                                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
+                                          {startDate} - {endDate}
+                                        </div>
+                                        <div className="text-xs font-bold text-blue-700 mt-1">
+                                          {quarterConsumed}/{quarterTotal} SP
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="flex-1 flex items-center justify-center text-gray-500">
+                                    <span>No quarters selected</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Body with both horizontal and vertical scroll */}
+                            <div
+                              id="right-body-scroll"
+                              className="flex-1 overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100"
+                              onScroll={(e) => {
+                                try {
+                                  // Sync horizontal scroll with header (avoid infinite loop)
+                                  const headerScroll = document.getElementById(
+                                    "right-header-scroll"
+                                  );
+                                  if (
+                                    headerScroll &&
+                                    headerScroll.scrollLeft !==
+                                      e.currentTarget.scrollLeft
+                                  ) {
+                                    headerScroll.scrollLeft =
+                                      e.currentTarget.scrollLeft;
+                                  }
+                                  // Sync vertical scroll with left panel (avoid infinite loop)
+                                  const leftScroll =
+                                    document.getElementById("left-scroll");
+                                  if (
+                                    leftScroll &&
+                                    leftScroll.scrollTop !==
+                                      e.currentTarget.scrollTop
+                                  ) {
+                                    leftScroll.scrollTop =
+                                      e.currentTarget.scrollTop;
+                                  }
+                                } catch (error) {
+                                  // Silently handle scroll sync errors
+                                }
+                              }}
+                            >
+                              <div className="min-w-max pb-20">
+                                {features.map((feature: any, index: number) => {
                                   return (
                                     <div
-                                      key={quarter}
-                                      className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1"
+                                      key={feature.id}
+                                      className="relative h-[140px] border-b border-blue-100 group min-w-max"
                                     >
-                                      <div className="font-bold text-base text-blue-900">
-                                        {quarter} {qItem.year}
+                                      {/* Quarter dividers for rolling view */}
+                                      <div className="absolute inset-0 flex">
+                                        {quarterDisplay.length > 0 &&
+                                          quarterDisplay.map((qItem, index) => (
+                                            <div
+                                              key={`${qItem.quarter}-${qItem.year}-divider`}
+                                              className="border-r border-blue-100 last:border-r-0 min-w-[200px]"
+                                            />
+                                          ))}
                                       </div>
-                                      <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
-                                        {startDate} - {endDate}
-                                      </div>
-                                      <div className="text-xs font-bold text-blue-700 mt-1">
-                                        {quarterConsumed}/{quarterTotal} SP
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                <div className="flex-1 flex items-center justify-center text-gray-500">
-                                  <span>No quarters selected</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
 
-                          {/* Timeline Grid - Scrollable content */}
-                          <div
-                            id="right-scroll"
-                            className="flex-1 overflow-y-auto pb-20"
-                            onScroll={handleScroll}
-                          >
-                            {features.map((feature: any, index: number) => {
-                              return (
-                                <div
-                                  key={feature.id}
-                                  className="relative h-[140px] border-b border-blue-100 group"
-                                >
-                                  {/* Quarter dividers for rolling view */}
-                                  <div className="absolute inset-0 flex">
-                                    {quarterDisplay.length > 0 &&
-                                      quarterDisplay.map((qItem, index) => (
-                                        <div
-                                          key={`${qItem.quarter}-${qItem.year}-divider`}
-                                          className="flex-1 border-r border-blue-100 last:border-r-0"
-                                        />
-                                      ))}
-                                  </div>
-
-                                  {/* Continuous feature bar spanning multiple quarters */}
-                                  <div className="absolute inset-0 flex">
-                                    {(() => {
-                                      const featureStart = new Date(
-                                        feature.startDate
-                                      );
-                                      const featureEnd = new Date(
-                                        feature.endDate
-                                      );
-
-                                      // Calculate total story points across all quarters
-                                      const totalPlanned = Object.values(
-                                        feature.quarterlyConsumption as Record<
-                                          string,
-                                          any
-                                        >
-                                      ).reduce(
-                                        (sum: number, q: any) =>
-                                          sum + (parseInt(q?.planned) || 0),
-                                        0
-                                      );
-
-                                      const totalConsumed = Object.values(
-                                        feature.quarterlyConsumption as Record<
-                                          string,
-                                          any
-                                        >
-                                      ).reduce(
-                                        (sum: number, q: any) =>
-                                          sum + (parseInt(q?.consumed) || 0),
-                                        0
-                                      );
-
-                                      if (totalPlanned === 0) {
-                                        return quarterDisplay.map((qItem) => (
-                                          <div
-                                            key={`${qItem.quarter}-${qItem.year}`}
-                                            className="flex-1"
-                                          />
-                                        ));
-                                      }
-
-                                      // Calculate which quarters the feature spans
-                                      const spannedQuarters =
-                                        quarterDisplay.filter((qItem) => {
-                                          const quarterDates = getQuarterDates(
-                                            qItem.quarter,
-                                            qItem.year
+                                      {/* Continuous feature bar spanning multiple quarters */}
+                                      <div className="absolute inset-0 flex">
+                                        {(() => {
+                                          const featureStart = new Date(
+                                            feature.startDate
                                           );
-                                          return (
-                                            featureStart <= quarterDates.end &&
-                                            featureEnd >= quarterDates.start
+                                          const featureEnd = new Date(
+                                            feature.endDate
                                           );
-                                        });
 
-                                      if (spannedQuarters.length === 0) {
-                                        return quarterDisplay.map((qItem) => (
-                                          <div
-                                            key={`${qItem.quarter}-${qItem.year}`}
-                                            className="flex-1"
-                                          />
-                                        ));
-                                      }
+                                          // Calculate total story points across all quarters
+                                          const totalPlanned = Object.values(
+                                            feature.quarterlyConsumption as Record<
+                                              string,
+                                              any
+                                            >
+                                          ).reduce(
+                                            (sum: number, q: any) =>
+                                              sum + (parseInt(q?.planned) || 0),
+                                            0
+                                          );
 
-                                      const firstSpannedIndex =
-                                        quarterDisplay.findIndex(
-                                          (q) =>
-                                            q.quarter ===
-                                              spannedQuarters[0].quarter &&
-                                            q.year === spannedQuarters[0].year
-                                        );
-                                      const lastSpannedIndex =
-                                        quarterDisplay.findIndex(
-                                          (q) =>
-                                            q.quarter ===
-                                              spannedQuarters[
-                                                spannedQuarters.length - 1
-                                              ].quarter &&
-                                            q.year ===
-                                              spannedQuarters[
-                                                spannedQuarters.length - 1
-                                              ].year
-                                        );
+                                          const totalConsumed = Object.values(
+                                            feature.quarterlyConsumption as Record<
+                                              string,
+                                              any
+                                            >
+                                          ).reduce(
+                                            (sum: number, q: any) =>
+                                              sum +
+                                              (parseInt(q?.consumed) || 0),
+                                            0
+                                          );
 
-                                      const consumedPercentage =
-                                        totalPlanned > 0
-                                          ? (totalConsumed / totalPlanned) * 100
-                                          : 0;
-
-                                      return quarterDisplay.map(
-                                        (qItem, index) => {
-                                          if (
-                                            index < firstSpannedIndex ||
-                                            index > lastSpannedIndex
-                                          ) {
-                                            return (
-                                              <div
-                                                key={`${qItem.quarter}-${qItem.year}`}
-                                                className="flex-1"
-                                              />
+                                          if (totalPlanned === 0) {
+                                            return quarterDisplay.map(
+                                              (qItem) => (
+                                                <div
+                                                  key={`${qItem.quarter}-${qItem.year}`}
+                                                  className="flex-1"
+                                                />
+                                              )
                                             );
                                           }
 
-                                          const isFirstQuarter =
-                                            index === firstSpannedIndex;
-                                          const isLastQuarter =
-                                            index === lastSpannedIndex;
-                                          const isOnlyQuarter =
-                                            firstSpannedIndex ===
-                                            lastSpannedIndex;
+                                          // Calculate which quarters the feature spans
+                                          const spannedQuarters =
+                                            quarterDisplay.filter((qItem) => {
+                                              const quarterDates =
+                                                getQuarterDates(
+                                                  qItem.quarter,
+                                                  qItem.year
+                                                );
+                                              return (
+                                                featureStart <=
+                                                  quarterDates.end &&
+                                                featureEnd >= quarterDates.start
+                                              );
+                                            });
 
-                                          return (
-                                            <div
-                                              key={`${qItem.quarter}-${qItem.year}`}
-                                              className="flex-1 relative flex items-center justify-center p-4"
-                                            >
-                                              {isFirstQuarter && (
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <div
-                                                        className="absolute h-12 flex items-center justify-center"
-                                                        style={{
-                                                          left: "16px",
-                                                          right: isOnlyQuarter
-                                                            ? "16px"
-                                                            : `${
-                                                                -100 *
-                                                                (lastSpannedIndex -
-                                                                  firstSpannedIndex)
-                                                              }%`,
-                                                          width: isOnlyQuarter
-                                                            ? "calc(100% - 32px)"
-                                                            : `${
-                                                                100 *
-                                                                (lastSpannedIndex -
-                                                                  firstSpannedIndex +
-                                                                  1)
-                                                              }%`,
-                                                        }}
-                                                      >
-                                                        {/* Planned bar (lighter shade) */}
-                                                        <div
-                                                          className={`w-full h-full rounded-lg shadow-lg border-2 relative ${
-                                                            feature.status ===
-                                                            "completed"
-                                                              ? "bg-green-100 border-green-300"
-                                                              : feature.status ===
-                                                                "in-progress"
-                                                              ? "bg-yellow-100 border-yellow-300"
-                                                              : feature.status ===
-                                                                "blocked"
-                                                              ? "bg-red-100 border-red-300"
-                                                              : "bg-blue-100 border-blue-300"
-                                                          }`}
-                                                        >
-                                                          {/* Consumed bar (darker shade) */}
-                                                          {totalConsumed >
-                                                            0 && (
+                                          if (spannedQuarters.length === 0) {
+                                            return quarterDisplay.map(
+                                              (qItem) => (
+                                                <div
+                                                  key={`${qItem.quarter}-${qItem.year}`}
+                                                  className="flex-1"
+                                                />
+                                              )
+                                            );
+                                          }
+
+                                          const firstSpannedIndex =
+                                            quarterDisplay.findIndex(
+                                              (q) =>
+                                                q.quarter ===
+                                                  spannedQuarters[0].quarter &&
+                                                q.year ===
+                                                  spannedQuarters[0].year
+                                            );
+                                          const lastSpannedIndex =
+                                            quarterDisplay.findIndex(
+                                              (q) =>
+                                                q.quarter ===
+                                                  spannedQuarters[
+                                                    spannedQuarters.length - 1
+                                                  ].quarter &&
+                                                q.year ===
+                                                  spannedQuarters[
+                                                    spannedQuarters.length - 1
+                                                  ].year
+                                            );
+
+                                          const consumedPercentage =
+                                            totalPlanned > 0
+                                              ? (totalConsumed / totalPlanned) *
+                                                100
+                                              : 0;
+
+                                          return quarterDisplay.map(
+                                            (qItem, index) => {
+                                              if (
+                                                index < firstSpannedIndex ||
+                                                index > lastSpannedIndex
+                                              ) {
+                                                return (
+                                                  <div
+                                                    key={`${qItem.quarter}-${qItem.year}`}
+                                                    className="flex-1"
+                                                  />
+                                                );
+                                              }
+
+                                              const isFirstQuarter =
+                                                index === firstSpannedIndex;
+                                              const isLastQuarter =
+                                                index === lastSpannedIndex;
+                                              const isOnlyQuarter =
+                                                firstSpannedIndex ===
+                                                lastSpannedIndex;
+
+                                              return (
+                                                <div
+                                                  key={`${qItem.quarter}-${qItem.year}`}
+                                                  className="flex-1 relative flex items-center justify-center p-4"
+                                                >
+                                                  {isFirstQuarter && (
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <div
+                                                            className="absolute h-12 flex items-center justify-center"
+                                                            style={{
+                                                              left: "16px",
+                                                              right:
+                                                                isOnlyQuarter
+                                                                  ? "16px"
+                                                                  : `${
+                                                                      -100 *
+                                                                      (lastSpannedIndex -
+                                                                        firstSpannedIndex)
+                                                                    }%`,
+                                                              width:
+                                                                isOnlyQuarter
+                                                                  ? "calc(100% - 32px)"
+                                                                  : `${
+                                                                      100 *
+                                                                      (lastSpannedIndex -
+                                                                        firstSpannedIndex +
+                                                                        1)
+                                                                    }%`,
+                                                            }}
+                                                          >
+                                                            {/* Planned bar (lighter shade) */}
                                                             <div
-                                                              className={`absolute h-full rounded-lg shadow-md ${
+                                                              className={`w-full h-full rounded-lg shadow-lg border-2 relative ${
                                                                 feature.status ===
                                                                 "completed"
-                                                                  ? "bg-green-500"
+                                                                  ? "bg-green-100 border-green-300"
                                                                   : feature.status ===
                                                                     "in-progress"
-                                                                  ? "bg-yellow-500"
+                                                                  ? "bg-yellow-100 border-yellow-300"
                                                                   : feature.status ===
                                                                     "blocked"
-                                                                  ? "bg-red-500"
-                                                                  : "bg-blue-500"
+                                                                  ? "bg-red-100 border-red-300"
+                                                                  : "bg-blue-100 border-blue-300"
                                                               }`}
-                                                              style={{
-                                                                width: `${consumedPercentage}%`,
-                                                              }}
-                                                            />
-                                                          )}
+                                                            >
+                                                              {/* Consumed bar (darker shade) */}
+                                                              {totalConsumed >
+                                                                0 && (
+                                                                <div
+                                                                  className={`absolute h-full rounded-lg shadow-md ${
+                                                                    feature.status ===
+                                                                    "completed"
+                                                                      ? "bg-green-500"
+                                                                      : feature.status ===
+                                                                        "in-progress"
+                                                                      ? "bg-yellow-500"
+                                                                      : feature.status ===
+                                                                        "blocked"
+                                                                      ? "bg-red-500"
+                                                                      : "bg-blue-500"
+                                                                  }`}
+                                                                  style={{
+                                                                    width: `${consumedPercentage}%`,
+                                                                  }}
+                                                                />
+                                                              )}
 
-                                                          {/* Story points text */}
-                                                          <div className="absolute inset-0 flex items-center justify-center">
-                                                            <span className="text-sm font-bold text-gray-800 drop-shadow-sm whitespace-nowrap">
-                                                              {totalConsumed > 0
-                                                                ? `${totalConsumed}/${totalPlanned}`
-                                                                : totalPlanned}{" "}
-                                                              SP
-                                                            </span>
+                                                              {/* Story points text */}
+                                                              <div className="absolute inset-0 flex items-center justify-center">
+                                                                <span className="text-sm font-bold text-gray-800 drop-shadow-sm whitespace-nowrap">
+                                                                  {totalConsumed >
+                                                                  0
+                                                                    ? `${totalConsumed}/${totalPlanned}`
+                                                                    : totalPlanned}{" "}
+                                                                  SP
+                                                                </span>
+                                                              </div>
+                                                            </div>
                                                           </div>
-                                                        </div>
-                                                      </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      <div className="text-sm">
-                                                        <p className="font-semibold">
-                                                          {feature.name}
-                                                        </p>
-                                                        <div className="text-xs text-gray-500 mb-2">
-                                                          {featureStart.toLocaleDateString(
-                                                            "en-US",
-                                                            {
-                                                              month: "short",
-                                                              day: "numeric",
-                                                              year: "numeric",
-                                                            }
-                                                          )}{" "}
-                                                          -{" "}
-                                                          {featureEnd.toLocaleDateString(
-                                                            "en-US",
-                                                            {
-                                                              month: "short",
-                                                              day: "numeric",
-                                                              year: "numeric",
-                                                            }
-                                                          )}
-                                                        </div>
-                                                        <p>
-                                                          Total Planned:{" "}
-                                                          {totalPlanned} SP
-                                                        </p>
-                                                        <p>
-                                                          Total Consumed:{" "}
-                                                          {totalConsumed} SP
-                                                        </p>
-                                                        <p>
-                                                          Remaining:{" "}
-                                                          {totalPlanned -
-                                                            totalConsumed}{" "}
-                                                          SP
-                                                        </p>
-                                                        <p>
-                                                          Progress:{" "}
-                                                          {consumedPercentage.toFixed(
-                                                            0
-                                                          )}
-                                                          %
-                                                        </p>
-                                                        <hr className="my-2" />
-                                                        <p className="text-xs font-semibold">
-                                                          Quarterly Breakdown:
-                                                        </p>
-                                                        {Object.entries(
-                                                          feature.quarterlyConsumption
-                                                        ).map(
-                                                          ([quarter, qData]: [
-                                                            string,
-                                                            any
-                                                          ]) => {
-                                                            const planned =
-                                                              parseInt(
-                                                                qData?.planned
-                                                              ) || 0;
-                                                            const consumed =
-                                                              parseInt(
-                                                                qData?.consumed
-                                                              ) || 0;
-                                                            if (planned === 0)
-                                                              return null;
-                                                            return (
-                                                              <p
-                                                                key={quarter}
-                                                                className="text-xs"
-                                                              >
-                                                                {quarter}:{" "}
-                                                                {consumed > 0
-                                                                  ? `${consumed}/${planned}`
-                                                                  : planned}{" "}
-                                                                SP
-                                                              </p>
-                                                            );
-                                                          }
-                                                        )}
-                                                      </div>
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
-                                              )}
-                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <div className="text-sm">
+                                                            <p className="font-semibold">
+                                                              {feature.name}
+                                                            </p>
+                                                            <div className="text-xs text-gray-500 mb-2">
+                                                              {featureStart.toLocaleDateString(
+                                                                "en-US",
+                                                                {
+                                                                  month:
+                                                                    "short",
+                                                                  day: "numeric",
+                                                                  year: "numeric",
+                                                                }
+                                                              )}{" "}
+                                                              -{" "}
+                                                              {featureEnd.toLocaleDateString(
+                                                                "en-US",
+                                                                {
+                                                                  month:
+                                                                    "short",
+                                                                  day: "numeric",
+                                                                  year: "numeric",
+                                                                }
+                                                              )}
+                                                            </div>
+                                                            <p>
+                                                              Total Planned:{" "}
+                                                              {totalPlanned} SP
+                                                            </p>
+                                                            <p>
+                                                              Total Consumed:{" "}
+                                                              {totalConsumed} SP
+                                                            </p>
+                                                            <p>
+                                                              Remaining:{" "}
+                                                              {totalPlanned -
+                                                                totalConsumed}{" "}
+                                                              SP
+                                                            </p>
+                                                            <p>
+                                                              Progress:{" "}
+                                                              {consumedPercentage.toFixed(
+                                                                0
+                                                              )}
+                                                              %
+                                                            </p>
+                                                            <hr className="my-2" />
+                                                            <p className="text-xs font-semibold">
+                                                              Quarterly
+                                                              Breakdown:
+                                                            </p>
+                                                            {Object.entries(
+                                                              feature.quarterlyConsumption
+                                                            ).map(
+                                                              ([
+                                                                quarter,
+                                                                qData,
+                                                              ]: [
+                                                                string,
+                                                                any
+                                                              ]) => {
+                                                                const planned =
+                                                                  parseInt(
+                                                                    qData?.planned
+                                                                  ) || 0;
+                                                                const consumed =
+                                                                  parseInt(
+                                                                    qData?.consumed
+                                                                  ) || 0;
+                                                                if (
+                                                                  planned === 0
+                                                                )
+                                                                  return null;
+                                                                return (
+                                                                  <p
+                                                                    key={
+                                                                      quarter
+                                                                    }
+                                                                    className="text-xs"
+                                                                  >
+                                                                    {quarter}:{" "}
+                                                                    {consumed >
+                                                                    0
+                                                                      ? `${consumed}/${planned}`
+                                                                      : planned}{" "}
+                                                                    SP
+                                                                  </p>
+                                                                );
+                                                              }
+                                                            )}
+                                                          </div>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  )}
+                                                </div>
+                                              );
+                                            }
                                           );
-                                        }
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                        })()}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1096,7 +1274,22 @@ export default function Dashboard() {
                           <div
                             id="teams-left-scroll"
                             className="flex-1 overflow-y-auto pb-20"
-                            onScroll={handleScroll}
+                            onScroll={(e) => {
+                              try {
+                                const teamsBodyScroll =
+                                  document.getElementById("teams-body-scroll");
+                                if (
+                                  teamsBodyScroll &&
+                                  teamsBodyScroll.scrollTop !==
+                                    e.currentTarget.scrollTop
+                                ) {
+                                  teamsBodyScroll.scrollTop =
+                                    e.currentTarget.scrollTop;
+                                }
+                              } catch (error) {
+                                // Silently handle scroll sync errors
+                              }
+                            }}
                           >
                             {teams.map((teamName) => {
                               const teamFeatures = teamGroups[teamName] || [];
@@ -1222,374 +1415,461 @@ export default function Dashboard() {
                         </div>
 
                         {/* Right Section - Timeline Grid (same as Features tab) */}
-                        <div className="flex-1 bg-white flex flex-col">
-                          {/* Quarter Headers with Totals - Rolling View */}
-                          <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0">
-                            {quarterDisplay.length > 0 ? (
-                              quarterDisplay.map((qItem) => {
-                                const quarter = qItem.quarter;
-                                // Calculate quarterly totals across all teams
-                                const quarterTotal = Object.values(teamGroups)
-                                  .flat()
-                                  .reduce((sum: number, feature: any) => {
-                                    const qData =
-                                      feature.quarterlyConsumption[quarter];
-                                    return (
-                                      sum +
-                                      (qData ? parseInt(qData.planned) || 0 : 0)
+                        <div className="flex-1 bg-white flex flex-col overflow-hidden">
+                          {/* Single wrapper for both header and content with synchronized scrolling */}
+                          <div className="flex-1 flex flex-col overflow-hidden">
+                            {/* Header with horizontal scroll */}
+                            <div
+                              className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100"
+                              id="teams-header-scroll"
+                              onScroll={(e) => {
+                                try {
+                                  const bodyScroll =
+                                    document.getElementById(
+                                      "teams-body-scroll"
                                     );
-                                  }, 0);
-
-                                const quarterConsumed = Object.values(
-                                  teamGroups
-                                )
-                                  .flat()
-                                  .reduce((sum: number, feature: any) => {
-                                    const qData =
-                                      feature.quarterlyConsumption[quarter];
-                                    return (
-                                      sum +
-                                      (qData
-                                        ? parseInt(qData.consumed) || 0
-                                        : 0)
-                                    );
-                                  }, 0);
-
-                                // Get quarter date range for teams tab
-                                const qDates = getQuarterDates(
-                                  quarter,
-                                  qItem.year
-                                );
-                                const startDate =
-                                  qDates.start.toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                  });
-                                const endDate = qDates.end.toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
+                                  if (
+                                    bodyScroll &&
+                                    bodyScroll.scrollLeft !==
+                                      e.currentTarget.scrollLeft
+                                  ) {
+                                    bodyScroll.scrollLeft =
+                                      e.currentTarget.scrollLeft;
                                   }
-                                );
+                                } catch (error) {
+                                  // Silently handle scroll sync errors
+                                }
+                              }}
+                            >
+                              <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0 min-w-max">
+                                {quarterDisplay.length > 0 ? (
+                                  quarterDisplay.map((qItem) => {
+                                    const quarter = qItem.quarter;
+                                    // Calculate quarterly totals across all teams
+                                    const quarterTotal = Object.values(
+                                      teamGroups
+                                    )
+                                      .flat()
+                                      .reduce((sum: number, feature: any) => {
+                                        if (!feature.quarterlyConsumption)
+                                          return sum;
+                                        // Use the specific quarter key from qItem
+                                        const qData =
+                                          feature.quarterlyConsumption[
+                                            qItem.quarterKey
+                                          ];
+                                        return (
+                                          sum +
+                                          (qData
+                                            ? parseInt(qData.planned) || 0
+                                            : 0)
+                                        );
+                                      }, 0);
 
-                                return (
-                                  <div
-                                    key={quarter}
-                                    className="flex-1 flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1"
-                                  >
-                                    <div className="font-bold text-base text-blue-900">
-                                      {quarter} {qItem.year}
-                                    </div>
-                                    <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
-                                      {startDate} - {endDate}
-                                    </div>
-                                    <div className="text-xs font-bold text-blue-700 mt-1">
-                                      {quarterConsumed}/{quarterTotal} SP
-                                    </div>
+                                    const quarterConsumed = Object.values(
+                                      teamGroups
+                                    )
+                                      .flat()
+                                      .reduce((sum: number, feature: any) => {
+                                        if (!feature.quarterlyConsumption)
+                                          return sum;
+                                        // Use the specific quarter key from qItem
+                                        const qData =
+                                          feature.quarterlyConsumption[
+                                            qItem.quarterKey
+                                          ];
+                                        return (
+                                          sum +
+                                          (qData
+                                            ? parseInt(qData.consumed) || 0
+                                            : 0)
+                                        );
+                                      }, 0);
+
+                                    // Get quarter date range for teams tab
+                                    const qDates = getQuarterDates(
+                                      quarter,
+                                      qItem.year
+                                    );
+                                    const startDate =
+                                      qDates.start.toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                      });
+                                    const endDate =
+                                      qDates.end.toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                      });
+
+                                    return (
+                                      <div
+                                        key={qItem.quarterKey}
+                                        className="flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1 min-w-[200px]"
+                                      >
+                                        <div className="font-bold text-base text-blue-900">
+                                          {quarter} {qItem.year}
+                                        </div>
+                                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
+                                          {startDate} - {endDate}
+                                        </div>
+                                        <div className="text-xs font-bold text-blue-700 mt-1">
+                                          {quarterConsumed}/{quarterTotal} SP
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="flex-1 flex items-center justify-center text-gray-500">
+                                    <span>No quarters selected</span>
                                   </div>
-                                );
-                              })
-                            ) : (
-                              <div className="flex-1 flex items-center justify-center text-gray-500">
-                                <span>No quarters selected</span>
+                                )}
                               </div>
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Teams Timeline Grid - Scrollable content */}
-                          <div
-                            id="teams-right-scroll"
-                            className="flex-1 overflow-y-auto pb-1"
-                            onScroll={handleScroll}
-                          >
-                            {teams.map((teamName) => {
-                              const teamFeatures = teamGroups[teamName] || [];
+                            {/* Body with both horizontal and vertical scroll */}
+                            <div
+                              id="teams-body-scroll"
+                              className="flex-1 overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100"
+                              onScroll={(e) => {
+                                try {
+                                  // Sync horizontal scroll with header (avoid infinite loop)
+                                  const headerScroll = document.getElementById(
+                                    "teams-header-scroll"
+                                  );
+                                  if (
+                                    headerScroll &&
+                                    headerScroll.scrollLeft !==
+                                      e.currentTarget.scrollLeft
+                                  ) {
+                                    headerScroll.scrollLeft =
+                                      e.currentTarget.scrollLeft;
+                                  }
+                                  // Sync vertical scroll with left panel (avoid infinite loop)
+                                  const leftScroll =
+                                    document.getElementById(
+                                      "teams-left-scroll"
+                                    );
+                                  if (
+                                    leftScroll &&
+                                    leftScroll.scrollTop !==
+                                      e.currentTarget.scrollTop
+                                  ) {
+                                    leftScroll.scrollTop =
+                                      e.currentTarget.scrollTop;
+                                  }
+                                } catch (error) {
+                                  // Silently handle scroll sync errors
+                                }
+                              }}
+                            >
+                              <div className="min-w-max pb-1">
+                                {teams.map((teamName) => {
+                                  const teamFeatures =
+                                    teamGroups[teamName] || [];
 
-                              return (
-                                <div key={teamName}>
-                                  {/* Team Header Row */}
-                                  <div className="relative h-[60px] border-b border-blue-200 bg-blue-100">
-                                    <div className="absolute inset-0 flex">
-                                      {quarterDisplay.length > 0 &&
-                                        quarterDisplay.map((qItem) => (
-                                          <div
-                                            key={`${qItem.quarter}-${qItem.year}-team-header`}
-                                            className="flex-1 border-r border-blue-200 last:border-r-0"
-                                          />
-                                        ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Team Features Rows */}
-                                  {teamFeatures.map((feature: any) => (
-                                    <div
-                                      key={feature.id}
-                                      className="relative h-[100px] border-b border-blue-50 group"
-                                    >
-                                      {/* Quarter dividers - Rolling View */}
-                                      <div className="absolute inset-0 flex">
-                                        {quarterDisplay.length > 0 &&
-                                          quarterDisplay.map((qItem) => (
-                                            <div
-                                              key={`${qItem.quarter}-${qItem.year}-team-div`}
-                                              className="flex-1 border-r border-blue-100 last:border-r-0"
-                                            />
-                                          ))}
+                                  return (
+                                    <div key={teamName}>
+                                      {/* Team Header Row */}
+                                      <div className="relative h-[60px] border-b border-blue-200 bg-blue-100">
+                                        <div className="absolute inset-0 flex">
+                                          {quarterDisplay.length > 0 &&
+                                            quarterDisplay.map((qItem) => (
+                                              <div
+                                                key={`${qItem.quarter}-${qItem.year}-team-header`}
+                                                className="flex-1 border-r border-blue-200 last:border-r-0"
+                                              />
+                                            ))}
+                                        </div>
                                       </div>
 
-                                      {/* Continuous feature bar spanning multiple quarters - Teams View */}
-                                      <div className="absolute inset-0 flex">
-                                        {(() => {
-                                          const featureStart = new Date(
-                                            feature.startDate
-                                          );
-                                          const featureEnd = new Date(
-                                            feature.endDate
-                                          );
-
-                                          // Calculate total story points across all quarters
-                                          const totalPlanned = Object.values(
-                                            feature.quarterlyConsumption as Record<
-                                              string,
-                                              any
-                                            >
-                                          ).reduce(
-                                            (sum: number, q: any) =>
-                                              sum + (parseInt(q?.planned) || 0),
-                                            0
-                                          );
-
-                                          const totalConsumed = Object.values(
-                                            feature.quarterlyConsumption as Record<
-                                              string,
-                                              any
-                                            >
-                                          ).reduce(
-                                            (sum: number, q: any) =>
-                                              sum +
-                                              (parseInt(q?.consumed) || 0),
-                                            0
-                                          );
-
-                                          if (totalPlanned === 0) {
-                                            return quarterDisplay.map(
-                                              (qItem) => (
+                                      {/* Team Features Rows */}
+                                      {teamFeatures.map((feature: any) => (
+                                        <div
+                                          key={feature.id}
+                                          className="relative h-[100px] border-b border-blue-50 group"
+                                        >
+                                          {/* Quarter dividers - Rolling View */}
+                                          <div className="absolute inset-0 flex">
+                                            {quarterDisplay.length > 0 &&
+                                              quarterDisplay.map((qItem) => (
                                                 <div
-                                                  key={`${qItem.quarter}-${qItem.year}`}
-                                                  className="flex-1"
+                                                  key={`${qItem.quarter}-${qItem.year}-team-div`}
+                                                  className="flex-1 border-r border-blue-100 last:border-r-0"
                                                 />
-                                              )
-                                            );
-                                          }
+                                              ))}
+                                          </div>
 
-                                          // Calculate which quarters the feature spans
-                                          const spannedQuarters =
-                                            quarterDisplay.filter((qItem) => {
-                                              const quarterDates =
-                                                getQuarterDates(
-                                                  qItem.quarter,
-                                                  qItem.year
-                                                );
-                                              return (
-                                                featureStart <=
-                                                  quarterDates.end &&
-                                                featureEnd >= quarterDates.start
+                                          {/* Continuous feature bar spanning multiple quarters - Teams View */}
+                                          <div className="absolute inset-0 flex">
+                                            {(() => {
+                                              const featureStart = new Date(
+                                                feature.startDate
                                               );
-                                            });
+                                              const featureEnd = new Date(
+                                                feature.endDate
+                                              );
 
-                                          if (spannedQuarters.length === 0) {
-                                            return quarterDisplay.map(
-                                              (qItem) => (
-                                                <div
-                                                  key={`${qItem.quarter}-${qItem.year}`}
-                                                  className="flex-1"
-                                                />
-                                              )
-                                            );
-                                          }
+                                              // Calculate total story points across all quarters
+                                              const totalPlanned =
+                                                Object.values(
+                                                  feature.quarterlyConsumption as Record<
+                                                    string,
+                                                    any
+                                                  >
+                                                ).reduce(
+                                                  (sum: number, q: any) =>
+                                                    sum +
+                                                    (parseInt(q?.planned) || 0),
+                                                  0
+                                                );
 
-                                          const firstSpannedIndex =
-                                            quarterDisplay.findIndex(
-                                              (q) =>
-                                                q.quarter ===
-                                                  spannedQuarters[0].quarter &&
-                                                q.year ===
-                                                  spannedQuarters[0].year
-                                            );
-                                          const lastSpannedIndex =
-                                            quarterDisplay.findIndex(
-                                              (q) =>
-                                                q.quarter ===
-                                                  spannedQuarters[
-                                                    spannedQuarters.length - 1
-                                                  ].quarter &&
-                                                q.year ===
-                                                  spannedQuarters[
-                                                    spannedQuarters.length - 1
-                                                  ].year
-                                            );
+                                              const totalConsumed =
+                                                Object.values(
+                                                  feature.quarterlyConsumption as Record<
+                                                    string,
+                                                    any
+                                                  >
+                                                ).reduce(
+                                                  (sum: number, q: any) =>
+                                                    sum +
+                                                    (parseInt(q?.consumed) ||
+                                                      0),
+                                                  0
+                                                );
 
-                                          const consumedPercentage =
-                                            totalPlanned > 0
-                                              ? (totalConsumed / totalPlanned) *
-                                                100
-                                              : 0;
-
-                                          return quarterDisplay.map(
-                                            (qItem, index) => {
-                                              if (
-                                                index < firstSpannedIndex ||
-                                                index > lastSpannedIndex
-                                              ) {
-                                                return (
-                                                  <div
-                                                    key={`${qItem.quarter}-${qItem.year}`}
-                                                    className="flex-1"
-                                                  />
+                                              if (totalPlanned === 0) {
+                                                return quarterDisplay.map(
+                                                  (qItem) => (
+                                                    <div
+                                                      key={`${qItem.quarter}-${qItem.year}`}
+                                                      className="flex-1"
+                                                    />
+                                                  )
                                                 );
                                               }
 
-                                              const isFirstQuarter =
-                                                index === firstSpannedIndex;
-                                              const isOnlyQuarter =
-                                                firstSpannedIndex ===
-                                                lastSpannedIndex;
+                                              // Calculate which quarters the feature spans
+                                              const spannedQuarters =
+                                                quarterDisplay.filter(
+                                                  (qItem) => {
+                                                    const quarterDates =
+                                                      getQuarterDates(
+                                                        qItem.quarter,
+                                                        qItem.year
+                                                      );
+                                                    return (
+                                                      featureStart <=
+                                                        quarterDates.end &&
+                                                      featureEnd >=
+                                                        quarterDates.start
+                                                    );
+                                                  }
+                                                );
 
-                                              return (
-                                                <div
-                                                  key={`${qItem.quarter}-${qItem.year}`}
-                                                  className="flex-1 relative flex items-center justify-center p-4"
-                                                >
-                                                  {isFirstQuarter && (
-                                                    <TooltipProvider>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <div
-                                                            className="absolute h-full flex items-center justify-center"
-                                                            style={{
-                                                              left: "16px",
-                                                              right:
-                                                                isOnlyQuarter
-                                                                  ? "16px"
-                                                                  : `${
-                                                                      -100 *
-                                                                      (lastSpannedIndex -
-                                                                        firstSpannedIndex)
-                                                                    }%`,
-                                                              width:
-                                                                isOnlyQuarter
-                                                                  ? "calc(100% - 32px)"
-                                                                  : `${
-                                                                      100 *
-                                                                      (lastSpannedIndex -
-                                                                        firstSpannedIndex +
-                                                                        1)
-                                                                    }%`,
-                                                            }}
-                                                          >
-                                                            <div
-                                                              className={`w-full h-full rounded-lg shadow-lg border-2 relative ${
-                                                                feature.status ===
-                                                                "completed"
-                                                                  ? "bg-green-100 border-green-300"
-                                                                  : feature.status ===
-                                                                    "in-progress"
-                                                                  ? "bg-yellow-100 border-yellow-300"
-                                                                  : feature.status ===
-                                                                    "blocked"
-                                                                  ? "bg-red-100 border-red-300"
-                                                                  : "bg-blue-100 border-blue-300"
-                                                              }`}
+                                              if (
+                                                spannedQuarters.length === 0
+                                              ) {
+                                                return quarterDisplay.map(
+                                                  (qItem) => (
+                                                    <div
+                                                      key={`${qItem.quarter}-${qItem.year}`}
+                                                      className="flex-1"
+                                                    />
+                                                  )
+                                                );
+                                              }
+
+                                              const firstSpannedIndex =
+                                                quarterDisplay.findIndex(
+                                                  (q) =>
+                                                    q.quarter ===
+                                                      spannedQuarters[0]
+                                                        .quarter &&
+                                                    q.year ===
+                                                      spannedQuarters[0].year
+                                                );
+                                              const lastSpannedIndex =
+                                                quarterDisplay.findIndex(
+                                                  (q) =>
+                                                    q.quarter ===
+                                                      spannedQuarters[
+                                                        spannedQuarters.length -
+                                                          1
+                                                      ].quarter &&
+                                                    q.year ===
+                                                      spannedQuarters[
+                                                        spannedQuarters.length -
+                                                          1
+                                                      ].year
+                                                );
+
+                                              const consumedPercentage =
+                                                totalPlanned > 0
+                                                  ? (totalConsumed /
+                                                      totalPlanned) *
+                                                    100
+                                                  : 0;
+
+                                              return quarterDisplay.map(
+                                                (qItem, index) => {
+                                                  if (
+                                                    index < firstSpannedIndex ||
+                                                    index > lastSpannedIndex
+                                                  ) {
+                                                    return (
+                                                      <div
+                                                        key={`${qItem.quarter}-${qItem.year}`}
+                                                        className="flex-1"
+                                                      />
+                                                    );
+                                                  }
+
+                                                  const isFirstQuarter =
+                                                    index === firstSpannedIndex;
+                                                  const isOnlyQuarter =
+                                                    firstSpannedIndex ===
+                                                    lastSpannedIndex;
+
+                                                  return (
+                                                    <div
+                                                      key={`${qItem.quarter}-${qItem.year}`}
+                                                      className="flex-1 relative flex items-center justify-center p-4"
+                                                    >
+                                                      {isFirstQuarter && (
+                                                        <TooltipProvider>
+                                                          <Tooltip>
+                                                            <TooltipTrigger
+                                                              asChild
                                                             >
-                                                              {totalConsumed >
-                                                                0 && (
+                                                              <div
+                                                                className="absolute h-full flex items-center justify-center"
+                                                                style={{
+                                                                  left: "16px",
+                                                                  right:
+                                                                    isOnlyQuarter
+                                                                      ? "16px"
+                                                                      : `${
+                                                                          -100 *
+                                                                          (lastSpannedIndex -
+                                                                            firstSpannedIndex)
+                                                                        }%`,
+                                                                  width:
+                                                                    isOnlyQuarter
+                                                                      ? "calc(100% - 32px)"
+                                                                      : `${
+                                                                          100 *
+                                                                          (lastSpannedIndex -
+                                                                            firstSpannedIndex +
+                                                                            1)
+                                                                        }%`,
+                                                                }}
+                                                              >
                                                                 <div
-                                                                  className={`absolute h-full rounded-lg shadow-md ${
+                                                                  className={`w-full h-full rounded-lg shadow-lg border-2 relative ${
                                                                     feature.status ===
                                                                     "completed"
-                                                                      ? "bg-green-500"
+                                                                      ? "bg-green-100 border-green-300"
                                                                       : feature.status ===
                                                                         "in-progress"
-                                                                      ? "bg-yellow-500"
+                                                                      ? "bg-yellow-100 border-yellow-300"
                                                                       : feature.status ===
                                                                         "blocked"
-                                                                      ? "bg-red-500"
-                                                                      : "bg-blue-500"
+                                                                      ? "bg-red-100 border-red-300"
+                                                                      : "bg-blue-100 border-blue-300"
                                                                   }`}
-                                                                  style={{
-                                                                    width: `${consumedPercentage}%`,
-                                                                  }}
-                                                                />
-                                                              )}
-                                                              <div className="absolute inset-0 flex items-center justify-center">
-                                                                <span className="text-xs font-bold text-gray-800 drop-shadow-sm whitespace-nowrap">
+                                                                >
+                                                                  {totalConsumed >
+                                                                    0 && (
+                                                                    <div
+                                                                      className={`absolute h-full rounded-lg shadow-md ${
+                                                                        feature.status ===
+                                                                        "completed"
+                                                                          ? "bg-green-500"
+                                                                          : feature.status ===
+                                                                            "in-progress"
+                                                                          ? "bg-yellow-500"
+                                                                          : feature.status ===
+                                                                            "blocked"
+                                                                          ? "bg-red-500"
+                                                                          : "bg-blue-500"
+                                                                      }`}
+                                                                      style={{
+                                                                        width: `${consumedPercentage}%`,
+                                                                      }}
+                                                                    />
+                                                                  )}
+                                                                  <div className="absolute inset-0 flex items-center justify-center">
+                                                                    <span className="text-xs font-bold text-gray-800 drop-shadow-sm whitespace-nowrap">
+                                                                      {totalConsumed >
+                                                                      0
+                                                                        ? `${totalConsumed}/${totalPlanned}`
+                                                                        : totalPlanned}{" "}
+                                                                      SP
+                                                                    </span>
+                                                                  </div>
+                                                                </div>
+                                                              </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                              <div className="text-sm">
+                                                                <p className="font-semibold">
+                                                                  {feature.name}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500 mb-1">
+                                                                  {featureStart.toLocaleDateString(
+                                                                    "en-US",
+                                                                    {
+                                                                      month:
+                                                                        "short",
+                                                                      day: "numeric",
+                                                                      year: "numeric",
+                                                                    }
+                                                                  )}{" "}
+                                                                  -{" "}
+                                                                  {featureEnd.toLocaleDateString(
+                                                                    "en-US",
+                                                                    {
+                                                                      month:
+                                                                        "short",
+                                                                      day: "numeric",
+                                                                      year: "numeric",
+                                                                    }
+                                                                  )}
+                                                                </p>
+                                                                <p>
+                                                                  Total:{" "}
                                                                   {totalConsumed >
                                                                   0
                                                                     ? `${totalConsumed}/${totalPlanned}`
                                                                     : totalPlanned}{" "}
                                                                   SP
-                                                                </span>
+                                                                </p>
+                                                                <p>
+                                                                  Progress:{" "}
+                                                                  {consumedPercentage.toFixed(
+                                                                    0
+                                                                  )}
+                                                                  %
+                                                                </p>
                                                               </div>
-                                                            </div>
-                                                          </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          <div className="text-sm">
-                                                            <p className="font-semibold">
-                                                              {feature.name}
-                                                            </p>
-                                                            <p className="text-xs text-gray-500 mb-1">
-                                                              {featureStart.toLocaleDateString(
-                                                                "en-US",
-                                                                {
-                                                                  month:
-                                                                    "short",
-                                                                  day: "numeric",
-                                                                  year: "numeric",
-                                                                }
-                                                              )}{" "}
-                                                              -{" "}
-                                                              {featureEnd.toLocaleDateString(
-                                                                "en-US",
-                                                                {
-                                                                  month:
-                                                                    "short",
-                                                                  day: "numeric",
-                                                                  year: "numeric",
-                                                                }
-                                                              )}
-                                                            </p>
-                                                            <p>
-                                                              Total:{" "}
-                                                              {totalConsumed > 0
-                                                                ? `${totalConsumed}/${totalPlanned}`
-                                                                : totalPlanned}{" "}
-                                                              SP
-                                                            </p>
-                                                            <p>
-                                                              Progress:{" "}
-                                                              {consumedPercentage.toFixed(
-                                                                0
-                                                              )}
-                                                              %
-                                                            </p>
-                                                          </div>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    </TooltipProvider>
-                                                  )}
-                                                </div>
+                                                            </TooltipContent>
+                                                          </Tooltip>
+                                                        </TooltipProvider>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                }
                                               );
-                                            }
-                                          );
-                                        })()}
-                                      </div>
+                                            })()}
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
-                              );
-                            })}
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

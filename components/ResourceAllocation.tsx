@@ -31,37 +31,109 @@ export default function ResourceAllocation() {
   const { predictionData } = usePredictionStore();
   const projectEstimation = predictionData?.projectEstimation;
   const features = predictionData?.features || [];
+  const availableTeams = predictionData?.teams || ["Frontend", "Backend", "Full Stack", "DevOps"];
+  
+  // Generate team members based on team types
+  const getTeamMembers = (teamName: string) => {
+    const membersByTeam: { [key: string]: string[] } = {
+      "Frontend": ["Alice Chen", "Bob Miller", "Carol Wang"],
+      "Backend": ["David Kumar", "Elena Rodriguez", "Frank Liu"],
+      "Full Stack": ["Grace Kim", "Henry Jones", "Isabel Garcia"],
+      "DevOps": ["Jack Thompson", "Kate Singh", "Liam Brown"],
+    };
+    return membersByTeam[teamName] || ["Team Member A", "Team Member B", "Team Member C"];
+  };
+
+  // Assign features to teams based on their characteristics
+  const assignFeatureToTeam = (feature: any) => {
+    const tags = feature.tags || [];
+    const name = feature.name.toLowerCase();
+    
+    // Smart team assignment based on feature content
+    if (tags.includes("Integration") || tags.includes("API") || name.includes("api") || name.includes("integration")) {
+      return "Backend";
+    } else if (tags.includes("UI") || name.includes("frontend") || name.includes("ui")) {
+      return "Frontend";  
+    } else if (name.includes("migration") || name.includes("deployment") || tags.includes("DevOps")) {
+      return "DevOps";
+    } else {
+      return "Full Stack";
+    }
+  };
 
   // Calculate team workload
   const calculateTeamWorkload = () => {
     const teamWorkload: { [key: string]: any } = {};
 
-    features.forEach((feature: any) => {
-      const team = feature.team;
-      const assignee = feature.assignedTo;
+    // Initialize all teams from response data
+    availableTeams.forEach(teamName => {
+      teamWorkload[teamName] = {
+        name: teamName,
+        totalSP: 0,
+        completedSP: 0,
+        inProgressSP: 0,
+        plannedSP: 0,
+        members: new Set(getTeamMembers(teamName)),
+        features: [],
+        quarterlyWorkload: {},
+      };
+    });
 
-      if (!teamWorkload[team]) {
-        teamWorkload[team] = {
-          name: team,
+    features.forEach((feature: any) => {
+      const assignedTeam = assignFeatureToTeam(feature);
+      const teamMembers = getTeamMembers(assignedTeam);
+      const assignee = teamMembers[Math.floor(Math.random() * teamMembers.length)];
+      
+      // Add assigned team and member to feature for consistency
+      feature.team = assignedTeam;
+      feature.assignedTo = assignee;
+
+      if (!teamWorkload[assignedTeam]) {
+        teamWorkload[assignedTeam] = {
+          name: assignedTeam,
           totalSP: 0,
           completedSP: 0,
           inProgressSP: 0,
           plannedSP: 0,
-          members: new Set(),
+          members: new Set(teamMembers),
           features: [],
+          quarterlyWorkload: {},
         };
       }
 
-      teamWorkload[team].totalSP += feature.storyPoints;
-      teamWorkload[team].members.add(assignee);
-      teamWorkload[team].features.push(feature);
+      // Calculate total story points from quarterly consumption
+      const totalPlannedSP = feature.quarterlyConsumption 
+        ? Object.values(feature.quarterlyConsumption).reduce(
+            (sum: number, q: any) => sum + (parseInt(q?.planned) || 0), 0
+          )
+        : feature.storyPoints || 0;
+
+      const totalConsumedSP = feature.quarterlyConsumption
+        ? Object.values(feature.quarterlyConsumption).reduce(
+            (sum: number, q: any) => sum + (parseInt(q?.consumed) || 0), 0
+          )
+        : 0;
+
+      teamWorkload[assignedTeam].totalSP += totalPlannedSP;
+      teamWorkload[assignedTeam].members.add(assignee);
+      teamWorkload[assignedTeam].features.push(feature);
+
+      // Calculate quarterly workload
+      if (feature.quarterlyConsumption) {
+        Object.entries(feature.quarterlyConsumption).forEach(([quarter, qData]: [string, any]) => {
+          if (!teamWorkload[assignedTeam].quarterlyWorkload[quarter]) {
+            teamWorkload[assignedTeam].quarterlyWorkload[quarter] = 0;
+          }
+          teamWorkload[assignedTeam].quarterlyWorkload[quarter] += parseInt(qData?.planned) || 0;
+        });
+      }
 
       if (feature.status === "completed") {
-        teamWorkload[team].completedSP += feature.storyPoints;
-      } else if (feature.status === "in-progress") {
-        teamWorkload[team].inProgressSP += feature.storyPoints;
+        teamWorkload[assignedTeam].completedSP += Number(totalConsumedSP);
+      } else if (feature.status === "in-progress" || feature.status === "in_progress") {
+        teamWorkload[assignedTeam].inProgressSP += Number(totalConsumedSP);
       } else {
-        teamWorkload[team].plannedSP += feature.storyPoints;
+        teamWorkload[assignedTeam].plannedSP += Number(totalPlannedSP) - Number(totalConsumedSP);
       }
     });
 
@@ -87,31 +159,57 @@ export default function ResourceAllocation() {
     const individualWorkload: { [key: string]: any } = {};
 
     features.forEach((feature: any) => {
-      const assignee = feature.assignedTo;
+      // Use assigned team and assignee (set in calculateTeamWorkload)
+      const assignee = feature.assignedTo || "Unassigned";
+      const team = feature.team || "Unassigned";
 
       if (!individualWorkload[assignee]) {
         individualWorkload[assignee] = {
           name: assignee,
-          team: feature.team,
+          team: team,
           totalSP: 0,
           completedSP: 0,
           inProgressSP: 0,
           plannedSP: 0,
           features: 0,
           completedFeatures: 0,
+          quarterlyWorkload: {},
         };
       }
 
-      individualWorkload[assignee].totalSP += feature.storyPoints;
+      // Calculate total story points from quarterly consumption
+      const totalPlannedSP = feature.quarterlyConsumption 
+        ? Object.values(feature.quarterlyConsumption).reduce(
+            (sum: number, q: any) => sum + (parseInt(q?.planned) || 0), 0
+          )
+        : feature.storyPoints || 0;
+
+      const totalConsumedSP = feature.quarterlyConsumption
+        ? Object.values(feature.quarterlyConsumption).reduce(
+            (sum: number, q: any) => sum + (parseInt(q?.consumed) || 0), 0
+          )
+        : 0;
+
+      individualWorkload[assignee].totalSP += totalPlannedSP;
       individualWorkload[assignee].features += 1;
 
+      // Calculate quarterly individual workload
+      if (feature.quarterlyConsumption) {
+        Object.entries(feature.quarterlyConsumption).forEach(([quarter, qData]: [string, any]) => {
+          if (!individualWorkload[assignee].quarterlyWorkload[quarter]) {
+            individualWorkload[assignee].quarterlyWorkload[quarter] = 0;
+          }
+          individualWorkload[assignee].quarterlyWorkload[quarter] += parseInt(qData?.planned) || 0;
+        });
+      }
+
       if (feature.status === "completed") {
-        individualWorkload[assignee].completedSP += feature.storyPoints;
+        individualWorkload[assignee].completedSP += Number(totalConsumedSP);
         individualWorkload[assignee].completedFeatures += 1;
-      } else if (feature.status === "in-progress") {
-        individualWorkload[assignee].inProgressSP += feature.storyPoints;
+      } else if (feature.status === "in-progress" || feature.status === "in_progress") {
+        individualWorkload[assignee].inProgressSP += Number(totalConsumedSP);
       } else {
-        individualWorkload[assignee].plannedSP += feature.storyPoints;
+        individualWorkload[assignee].plannedSP += Number(totalPlannedSP) - Number(totalConsumedSP);
       }
     });
 
