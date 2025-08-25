@@ -768,6 +768,9 @@ export default function EstimationForm() {
       // Use dummy data as fallback when API is not available
       console.warn("API not available, using dummy data as fallback");
 
+      // Create a deep copy of the imported data to avoid any caching issues
+      const dummyResponse = JSON.parse(JSON.stringify(dummyResponseImport));
+
       // Store dummy data in Zustand store
       setPredictionData(dummyResponse);
       setApiResponse(dummyResponse);
