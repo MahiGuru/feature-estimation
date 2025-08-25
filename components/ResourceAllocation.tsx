@@ -31,33 +31,77 @@ export default function ResourceAllocation() {
   const { predictionData } = usePredictionStore();
   const projectEstimation = predictionData?.projectEstimation;
   const features = predictionData?.features || [];
-  const availableTeams = predictionData?.teams || ["Frontend", "Backend", "Full Stack", "DevOps"];
   
-  // Generate team members based on team types
-  const getTeamMembers = (teamName: string) => {
-    const membersByTeam: { [key: string]: string[] } = {
-      "Frontend": ["Alice Chen", "Bob Miller", "Carol Wang"],
-      "Backend": ["David Kumar", "Elena Rodriguez", "Frank Liu"],
-      "Full Stack": ["Grace Kim", "Henry Jones", "Isabel Garcia"],
-      "DevOps": ["Jack Thompson", "Kate Singh", "Liam Brown"],
+  // Use actual team composition from data
+  const actualTeamComposition = projectEstimation?.teamComposition || {};
+  
+  // Use actual teams from team composition data
+  const availableTeams = Object.keys(actualTeamComposition).length > 0 
+    ? Object.keys(actualTeamComposition).map(role => {
+        const roleToTeam: { [key: string]: string } = {
+          "developers": "Development Team",
+          "qa": "QA Team", 
+          "po": "Product Team",
+          "ba": "Business Analysis Team",
+          "managers": "Management Team",
+          "deliveryManagers": "Delivery Management Team",
+          "architects": "Architecture Team"
+        };
+        return roleToTeam[role] || role.charAt(0).toUpperCase() + role.slice(1);
+      })
+    : ["Development Team", "QA Team", "Management Team"];
+  
+  // Get actual team structure from response data
+  const getActualTeamMembers = () => {
+    const teamMembers: { [key: string]: string[] } = {};
+    
+    // Map the actual roles to team names and generate members
+    const roleToTeam: { [key: string]: string } = {
+      "developers": "Development Team",
+      "qa": "QA Team", 
+      "po": "Product Team",
+      "ba": "Business Analysis Team",
+      "managers": "Management Team",
+      "deliveryManagers": "Delivery Management Team",
+      "architects": "Architecture Team"
     };
-    return membersByTeam[teamName] || ["Team Member A", "Team Member B", "Team Member C"];
+    
+    Object.entries(actualTeamComposition).forEach(([role, count]) => {
+      const teamName = roleToTeam[role] || role.charAt(0).toUpperCase() + role.slice(1);
+      const memberCount = parseInt(count as string) || 0;
+      
+      teamMembers[teamName] = [];
+      for (let i = 1; i <= memberCount; i++) {
+        teamMembers[teamName].push(`${teamName} Member ${i}`);
+      }
+    });
+    
+    return teamMembers;
+  };
+  
+  const actualTeamMembers = getActualTeamMembers();
+  
+  const getTeamMembers = (teamName: string) => {
+    return actualTeamMembers[teamName] || [];
   };
 
-  // Assign features to teams based on their characteristics
+  // Assign features to actual teams based on their characteristics
   const assignFeatureToTeam = (feature: any) => {
     const tags = feature.tags || [];
     const name = feature.name.toLowerCase();
     
-    // Smart team assignment based on feature content
+    // Smart team assignment based on feature content and available teams
     if (tags.includes("Integration") || tags.includes("API") || name.includes("api") || name.includes("integration")) {
-      return "Backend";
+      return availableTeams.includes("Development Team") ? "Development Team" : availableTeams[0];
     } else if (tags.includes("UI") || name.includes("frontend") || name.includes("ui")) {
-      return "Frontend";  
+      return availableTeams.includes("Development Team") ? "Development Team" : availableTeams[0];  
     } else if (name.includes("migration") || name.includes("deployment") || tags.includes("DevOps")) {
-      return "DevOps";
+      return availableTeams.includes("Architecture Team") ? "Architecture Team" : availableTeams[0];
+    } else if (tags.includes("Testing") || name.includes("test")) {
+      return availableTeams.includes("QA Team") ? "QA Team" : availableTeams[0];
     } else {
-      return "Full Stack";
+      // Default to development team or first available team
+      return availableTeams.includes("Development Team") ? "Development Team" : availableTeams[0];
     }
   };
 
@@ -82,7 +126,9 @@ export default function ResourceAllocation() {
     features.forEach((feature: any) => {
       const assignedTeam = assignFeatureToTeam(feature);
       const teamMembers = getTeamMembers(assignedTeam);
-      const assignee = teamMembers[Math.floor(Math.random() * teamMembers.length)];
+      const assignee = teamMembers.length > 0 
+        ? teamMembers[Math.floor(Math.random() * teamMembers.length)]
+        : `${assignedTeam} Member 1`;
       
       // Add assigned team and member to feature for consistency
       feature.team = assignedTeam;
@@ -115,7 +161,9 @@ export default function ResourceAllocation() {
         : 0;
 
       teamWorkload[assignedTeam].totalSP += totalPlannedSP;
-      teamWorkload[assignedTeam].members.add(assignee);
+      if (assignee) {
+        teamWorkload[assignedTeam].members.add(assignee);
+      }
       teamWorkload[assignedTeam].features.push(feature);
 
       // Calculate quarterly workload
@@ -279,10 +327,13 @@ export default function ResourceAllocation() {
 
   const getTeamColor = (team: string) => {
     const colors: { [key: string]: string } = {
-      Frontend: "#3b82f6",
-      Backend: "#10b981",
-      "Full Stack": "#8b5cf6",
-      DevOps: "#f59e0b",
+      "Development Team": "#3b82f6",
+      "QA Team": "#10b981",
+      "Product Team": "#8b5cf6",
+      "Business Analysis Team": "#f59e0b",
+      "Management Team": "#ef4444",
+      "Delivery Management Team": "#06b6d4",
+      "Architecture Team": "#84cc16",
     };
     return colors[team] || "#6b7280";
   };

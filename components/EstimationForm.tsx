@@ -71,26 +71,25 @@ export default function EstimationForm() {
   } = usePredictionStore();
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([
     {
-      name: "MSTeams SSO Integration",
-      description: "Single Sign-On integration with Microsoft Teams",
-      epic: "User Authentication",
-      startDate: "2024-01-01",
+      name: "Jakarta Migrations",
+      description:
+        "Migrate all the libraries like tomahawk, hibernate, sprint etc to jakarta ee 10 compatible. if any library is not supported like tomahawk. Replace those tags used with jakarta faces or find alternate.",
+      // epic: "User Authentication",
+      // startDate: "2024-01-01",
       tshirtsize: "M",
       referenceAttachements: [],
     },
     {
-      name: "Jakartha EE Migration",
-      description: "Migrate application to Jakarta EE 10",
-      epic: "Infrastructure Upgrade",
-      startDate: "2024-02-01",
+      name: "Microsoft Teams Integration",
+      description:
+        "Create a MSTeams app which can be used to login and use the application within MSTeams. Use SSO for authentication and authorization.",
       tshirtsize: "L",
       referenceAttachements: [],
     },
     {
       name: "Angular 20 Upgrade",
-      description: "Upgrade Angular to version 20",
-      epic: "Frontend Modernization",
-      startDate: "2024-03-01",
+      description:
+        "Across the application upgrade the angular version to 20 and make sure all the deprecated libraries are replaced with latest ones.",
       tshirtsize: "XL",
       referenceAttachements: [],
     },
@@ -332,24 +331,25 @@ export default function EstimationForm() {
     try {
       // Add a minimum delay to show loading screen
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+
       // Create a deep copy of the imported data to avoid any caching issues
       const dummyResponse = JSON.parse(JSON.stringify(dummyResponseImport));
-      
+
       // Clear any existing data first to ensure fresh load
       clearData();
       // Also clear localStorage to remove any cached data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('prediction-store');
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("prediction-store");
       }
-      
+
       // Store dummy data directly
       setPredictionData(dummyResponse);
       setApiResponse(dummyResponse);
 
       toast({
         title: "Demo Data Loaded",
-        description: "Sample data loaded successfully! Redirecting to dashboard...",
+        description:
+          "Sample data loaded successfully! Redirecting to dashboard...",
         variant: "default",
       });
 
@@ -764,17 +764,18 @@ export default function EstimationForm() {
       }, 2000);
     } catch (error) {
       console.error("Submit error:", error);
-      
+
       // Use dummy data as fallback when API is not available
       console.warn("API not available, using dummy data as fallback");
-      
+
       // Store dummy data in Zustand store
       setPredictionData(dummyResponse);
       setApiResponse(dummyResponse);
 
       toast({
         title: "Demo Mode Active",
-        description: "API unavailable - showing demo data. Form submitted successfully! Redirecting to dashboard...",
+        description:
+          "API unavailable - showing demo data. Form submitted successfully! Redirecting to dashboard...",
         variant: "default",
       });
 
@@ -1620,7 +1621,7 @@ export default function EstimationForm() {
           <p className="text-blue-600/70 mt-4 text-sm">
             Submit your form data to get prediction results
           </p>
-          
+
           {/* Demo Data Button */}
           <div className="mt-6">
             <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 mb-3">
@@ -1638,7 +1639,8 @@ export default function EstimationForm() {
               Use Demo Data
             </Button>
             <p className="text-gray-500 mt-2 text-xs">
-              Load sample data from dummy/responsedata.json to test the dashboard
+              Load sample data from dummy/responsedata.json to test the
+              dashboard
             </p>
           </div>
         </div>
