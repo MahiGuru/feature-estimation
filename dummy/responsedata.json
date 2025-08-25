@@ -150,38 +150,27 @@
           "consumed": 0
         },
         "Q4_2025": {
-          "planned": 170,
+          "planned": 20,
           "consumed": 0
         },
         "Q1_2026": {
-          "planned": 170,
+          "planned": 30,
           "consumed": 0
         },
         "Q2_2026": {
-          "planned": 170,
+          "planned": 40,
           "consumed": 0
         },
         "Q3_2026": {
-          "planned": 70,
-          "consumed": 0
-        },
-        "Q4_2026": {
-          "planned": 70,
+          "planned": 160,
           "consumed": 0
         }
       },
       "sprint": "Sprint 4-8",
       "progress": 0,
       "startDate": "2025-09-01",
-      "endDate": "2025-12-31",
-      "quarters": [
-        "Q3 2025",
-        "Q4 2025",
-        "Q1 2026",
-        "Q2 2026",
-        "Q3 2026",
-        "Q4 2026"
-      ],
+      "endDate": "2026-09-31",
+      "quarters": ["Q3 2025", "Q4 2025", "Q1 2026", "Q2 2026", "Q3 2026"],
       "dependencies": [
         "Library compatibility analysis",
         "Jakarta EE 10 specifications"

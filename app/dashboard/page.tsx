@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import Navigation from "@/components/Navigation";
 import FeatureTracker from "@/components/FeatureTracker";
 import FeaturesGraphs from "@/components/FeaturesGraphs";
@@ -25,7 +25,22 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Filter, Info } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Calendar,
+  Filter,
+  Info,
+  Lightbulb,
+  AlertTriangle,
+  CheckCircle,
+  ChevronDown,
+} from "lucide-react";
 // Import demo data for fallback
 import * as demoDataModule from "@/dummy/responsedata.json";
 
@@ -61,6 +76,22 @@ export default function Dashboard() {
   const [visibleQuarters, setVisibleQuarters] = useState<{
     [key: string]: boolean;
   }>({});
+
+  // State for quarters section visibility
+  const [showQuartersSection, setShowQuartersSection] = useState(false);
+
+  // State for recommendation dialog and animation
+  const [isRecommendationOpen, setIsRecommendationOpen] = useState(false);
+  const [isBlinking, setIsBlinking] = useState(false);
+
+  // Handle recommendation button click with blink animation
+  const handleRecommendationClick = () => {
+    setIsBlinking(true);
+    setTimeout(() => {
+      setIsBlinking(false);
+      setIsRecommendationOpen(true);
+    }, 600); // Blink for 600ms then open dialog
+  };
 
   // Function to force reload demo data
   const reloadDemoData = async () => {
@@ -229,6 +260,24 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <Navigation />
 
+      {/* Add blink animation styles */}
+      <style jsx>{`
+        @keyframes blink {
+          0%,
+          50%,
+          100% {
+            opacity: 1;
+          }
+          25%,
+          75% {
+            opacity: 0.3;
+          }
+        }
+        .blink-animation {
+          animation: blink 0.6s ease-in-out;
+        }
+      `}</style>
+
       {/* Demo Mode Banner */}
       {/* {isDemoMode && (
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
@@ -268,19 +317,52 @@ export default function Dashboard() {
                 <div className="p-2 bg-indigo-100 rounded-lg">
                   <Calendar className="w-5 h-5 text-indigo-600" />
                 </div>
-                <span className="text-blue-900">
-                  Feature Timeline Calendar - Multi-Year View
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-blue-900">
+                    Feature Timeline Calendar - Multi-Year View
+                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lightbulb
+                          onClick={handleRecommendationClick}
+                          className={`w-5 h-5 text-amber-600 hover:text-amber-700 cursor-pointer transition-colors ${
+                            isBlinking ? "animate-blink" : ""
+                          }`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Recommendations</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </CardTitle>
 
               {/* Quarter Filter Controls */}
-              <div className="flex items-center space-x-4 flex-wrap">
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-col space-y-2">
+                {/* Toggle Button */}
+                <button
+                  onClick={() => setShowQuartersSection(!showQuartersSection)}
+                  className="flex items-center space-x-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                >
                   <Filter className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium text-gray-700">
-                    Show Quarters:
+                    Show Quarters
                   </span>
-                </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                      showQuartersSection ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* Collapsible Quarter Checkboxes */}
+            {showQuartersSection && (
+              <div className="flex items-center justify-evenly space-x-4 flex-wrap bg-blue-25 p-3 rounded-lg border border-blue-100">
                 {Object.keys(visibleQuarters)
                   .sort((a, b) => {
                     const [aQuarter, aYear] = a.split("_");
@@ -326,9 +408,7 @@ export default function Dashboard() {
                     );
                   })}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
+            )}
             {/* Use timeline data from Zustand store */}
             {predictionData && predictionData.features ? (
               (() => {
@@ -806,7 +886,7 @@ export default function Dashboard() {
                                 }
                               }}
                             >
-                              <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0 min-w-max">
+                              <div className="h-16 border-b border-blue-200 bg-blue-50 flex-shrink-0 flex" style={{ width: quarterDisplay.length <= 4 ? '100%' : `${quarterDisplay.length * 25}%`, minWidth: 'fit-content' }}>
                                 {quarterDisplay.length > 0 ? (
                                   quarterDisplay.map((qItem, index) => {
                                     const quarter = qItem.quarter;
@@ -869,13 +949,17 @@ export default function Dashboard() {
                                     return (
                                       <div
                                         key={quarterKey}
-                                        className="flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1 min-w-[200px]"
+                                        className="flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1"
+                                        style={{ 
+                                          width: quarterDisplay.length <= 4 ? `${100 / quarterDisplay.length}%` : '25%',
+                                          minWidth: '25%' 
+                                        }}
                                       >
                                         <div className="font-bold text-base text-blue-900">
                                           {quarter} {qItem.year}
-                                        </div>
-                                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
-                                          {startDate} - {endDate}
+                                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
+                                            {startDate} - {endDate}
+                                          </span>
                                         </div>
                                         <div className="text-xs font-bold text-blue-700 mt-1">
                                           {quarterConsumed}/{quarterTotal} SP
@@ -930,7 +1014,8 @@ export default function Dashboard() {
                                   return (
                                     <div
                                       key={feature.id}
-                                      className="relative h-[140px] border-b border-blue-100 group min-w-max"
+                                      className="relative h-[140px] border-b border-blue-100 group"
+                                      style={{ width: quarterDisplay.length <= 4 ? '100%' : `${quarterDisplay.length * 25}%`, minWidth: 'fit-content' }}
                                     >
                                       {/* Quarter dividers for rolling view */}
                                       <div className="absolute inset-0 flex">
@@ -938,13 +1023,17 @@ export default function Dashboard() {
                                           quarterDisplay.map((qItem, index) => (
                                             <div
                                               key={`${qItem.quarter}-${qItem.year}-divider`}
-                                              className="border-r border-blue-100 last:border-r-0 min-w-[200px]"
+                                              className="border-r border-blue-100 last:border-r-0"
+                                              style={{ 
+                                                width: quarterDisplay.length <= 4 ? `${100 / quarterDisplay.length}%` : '25%',
+                                                minWidth: '25%' 
+                                              }}
                                             />
                                           ))}
                                       </div>
 
                                       {/* Continuous feature bar spanning multiple quarters */}
-                                      <div className="absolute inset-0 flex">
+                                      <div className="absolute inset-0 flex items-center">
                                         {(() => {
                                           const featureStart = new Date(
                                             feature.startDate
@@ -988,19 +1077,13 @@ export default function Dashboard() {
                                             );
                                           }
 
-                                          // Calculate which quarters the feature spans
+                                          // Calculate which quarters the feature spans based on quarterlyConsumption data
                                           const spannedQuarters =
                                             quarterDisplay.filter((qItem) => {
-                                              const quarterDates =
-                                                getQuarterDates(
-                                                  qItem.quarter,
-                                                  qItem.year
-                                                );
-                                              return (
-                                                featureStart <=
-                                                  quarterDates.end &&
-                                                featureEnd >= quarterDates.start
-                                              );
+                                              const quarterKey = qItem.quarterKey;
+                                              const quarterData = feature.quarterlyConsumption?.[quarterKey];
+                                              // Include quarter if it has planned data
+                                              return quarterData && parseInt(quarterData.planned) > 0;
                                             });
 
                                           if (spannedQuarters.length === 0) {
@@ -1041,58 +1124,20 @@ export default function Dashboard() {
                                                 100
                                               : 0;
 
-                                          return quarterDisplay.map(
-                                            (qItem, index) => {
-                                              if (
-                                                index < firstSpannedIndex ||
-                                                index > lastSpannedIndex
-                                              ) {
-                                                return (
-                                                  <div
-                                                    key={`${qItem.quarter}-${qItem.year}`}
-                                                    className="flex-1"
-                                                  />
-                                                );
-                                              }
-
-                                              const isFirstQuarter =
-                                                index === firstSpannedIndex;
-                                              const isLastQuarter =
-                                                index === lastSpannedIndex;
-                                              const isOnlyQuarter =
-                                                firstSpannedIndex ===
-                                                lastSpannedIndex;
-
-                                              return (
-                                                <div
-                                                  key={`${qItem.quarter}-${qItem.year}`}
-                                                  className="flex-1 relative flex items-center justify-center p-4"
-                                                >
-                                                  {isFirstQuarter && (
+                                          // Render bar directly without quarter mapping
+                                          return (
                                                     <TooltipProvider>
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <div
                                                             className="absolute h-12 flex items-center justify-center"
                                                             style={{
-                                                              left: "16px",
-                                                              right:
-                                                                isOnlyQuarter
-                                                                  ? "16px"
-                                                                  : `${
-                                                                      -100 *
-                                                                      (lastSpannedIndex -
-                                                                        firstSpannedIndex)
-                                                                    }%`,
-                                                              width:
-                                                                isOnlyQuarter
-                                                                  ? "calc(100% - 32px)"
-                                                                  : `${
-                                                                      100 *
-                                                                      (lastSpannedIndex -
-                                                                        firstSpannedIndex +
-                                                                        1)
-                                                                    }%`,
+                                                              left: quarterDisplay.length <= 4 
+                                                                ? `calc(${(firstSpannedIndex / quarterDisplay.length) * 100}% + 1rem)`
+                                                                : `calc(${firstSpannedIndex * 25}% + 1rem)`,
+                                                              width: quarterDisplay.length <= 4
+                                                                ? `calc(${((lastSpannedIndex - firstSpannedIndex + 1) / quarterDisplay.length) * 100}% - 2rem)`
+                                                                : `calc(${(lastSpannedIndex - firstSpannedIndex + 1) * 25}% - 2rem)`,
                                                             }}
                                                           >
                                                             {/* Planned bar (lighter shade) */}
@@ -1132,15 +1177,93 @@ export default function Dashboard() {
                                                                 />
                                                               )}
 
-                                                              {/* Story points text */}
-                                                              <div className="absolute inset-0 flex items-center justify-center">
-                                                                <span className="text-sm font-bold text-gray-800 drop-shadow-sm whitespace-nowrap">
-                                                                  {totalConsumed >
-                                                                  0
-                                                                    ? `${totalConsumed}/${totalPlanned}`
-                                                                    : totalPlanned}{" "}
-                                                                  SP
-                                                                </span>
+                                                              {/* Quarter-wise story points - simple layout */}
+                                                              <div className="absolute inset-0 flex items-center justify-center gap-2 px-2">
+                                                                {quarterDisplay.map(
+                                                                  (
+                                                                    qDisplayItem,
+                                                                    qIndex
+                                                                  ) => {
+                                                                    const qData =
+                                                                      feature
+                                                                        .quarterlyConsumption?.[
+                                                                        qDisplayItem
+                                                                          .quarterKey
+                                                                      ];
+                                                                    const qPlanned =
+                                                                      parseInt(
+                                                                        qData?.planned
+                                                                      ) || 0;
+                                                                    const qConsumed =
+                                                                      parseInt(
+                                                                        qData?.consumed
+                                                                      ) || 0;
+
+                                                                    if (
+                                                                      qPlanned ===
+                                                                      0
+                                                                    )
+                                                                      return null;
+
+                                                                    return (
+                                                                      <React.Fragment
+                                                                        key={
+                                                                          qDisplayItem.quarterKey
+                                                                        }
+                                                                      >
+                                                                        <span className="text-xs font-bold text-gray-800 drop-shadow-sm whitespace-nowrap px-2 py-1 bg-white bg-opacity-70 rounded">
+                                                                          {
+                                                                            qDisplayItem.quarter
+                                                                          }{" "}
+                                                                          -{" "}
+                                                                          {qConsumed >
+                                                                          0
+                                                                            ? `${qConsumed}/${qPlanned}`
+                                                                            : qPlanned}
+                                                                          SP
+                                                                        </span>
+                                                                        {qIndex <
+                                                                          quarterDisplay.length -
+                                                                            1 &&
+                                                                          qIndex <
+                                                                            quarterDisplay.filter(
+                                                                              (
+                                                                                q
+                                                                              ) => {
+                                                                                const nextQData =
+                                                                                  feature
+                                                                                    .quarterlyConsumption?.[
+                                                                                    q
+                                                                                      .quarterKey
+                                                                                  ];
+                                                                                return (
+                                                                                  parseInt(
+                                                                                    nextQData?.planned
+                                                                                  ) >
+                                                                                  0
+                                                                                );
+                                                                              }
+                                                                            )
+                                                                              .length -
+                                                                              1 && (
+                                                                            <span className="text-gray-400 text-xs">
+                                                                              |
+                                                                            </span>
+                                                                          )}
+                                                                      </React.Fragment>
+                                                                    );
+                                                                  }
+                                                                )}
+                                                              </div>
+
+                                                              {/* Total story points at the bottom */}
+                                                              <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-black bg-opacity-20 text-white text-xs font-bold py-1 rounded-b-lg">
+                                                                Total:{" "}
+                                                                {totalConsumed >
+                                                                0
+                                                                  ? `${totalConsumed}/${totalPlanned}`
+                                                                  : totalPlanned}{" "}
+                                                                SP
                                                               </div>
                                                             </div>
                                                           </div>
@@ -1240,10 +1363,6 @@ export default function Dashboard() {
                                                         </TooltipContent>
                                                       </Tooltip>
                                                     </TooltipProvider>
-                                                  )}
-                                                </div>
-                                              );
-                                            }
                                           );
                                         })()}
                                       </div>
@@ -1441,7 +1560,7 @@ export default function Dashboard() {
                                 }
                               }}
                             >
-                              <div className="h-16 flex border-b border-blue-200 bg-blue-50 flex-shrink-0 min-w-max">
+                              <div className="h-16 border-b border-blue-200 bg-blue-50 flex-shrink-0 flex" style={{ width: quarterDisplay.length <= 4 ? '100%' : `${quarterDisplay.length * 25}%`, minWidth: 'fit-content' }}>
                                 {quarterDisplay.length > 0 ? (
                                   quarterDisplay.map((qItem) => {
                                     const quarter = qItem.quarter;
@@ -1505,7 +1624,11 @@ export default function Dashboard() {
                                     return (
                                       <div
                                         key={qItem.quarterKey}
-                                        className="flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1 min-w-[200px]"
+                                        className="flex flex-col items-center justify-center border-r border-blue-200 last:border-r-0 px-2 py-1"
+                                        style={{ 
+                                          width: quarterDisplay.length <= 4 ? `${100 / quarterDisplay.length}%` : '25%',
+                                          minWidth: '25%' 
+                                        }}
                                       >
                                         <div className="font-bold text-base text-blue-900">
                                           {quarter} {qItem.year}
@@ -1571,13 +1694,17 @@ export default function Dashboard() {
                                   return (
                                     <div key={teamName}>
                                       {/* Team Header Row */}
-                                      <div className="relative h-[60px] border-b border-blue-200 bg-blue-100">
+                                      <div className="relative h-[60px] border-b border-blue-200 bg-blue-100" style={{ width: quarterDisplay.length <= 4 ? '100%' : `${quarterDisplay.length * 25}%`, minWidth: 'fit-content' }}>
                                         <div className="absolute inset-0 flex">
                                           {quarterDisplay.length > 0 &&
                                             quarterDisplay.map((qItem) => (
                                               <div
                                                 key={`${qItem.quarter}-${qItem.year}-team-header`}
-                                                className="flex-1 border-r border-blue-200 last:border-r-0"
+                                                className="border-r border-blue-200 last:border-r-0"
+                                                style={{ 
+                                                  width: quarterDisplay.length <= 4 ? `${100 / quarterDisplay.length}%` : '25%',
+                                                  minWidth: '25%' 
+                                                }}
                                               />
                                             ))}
                                         </div>
@@ -1588,6 +1715,7 @@ export default function Dashboard() {
                                         <div
                                           key={feature.id}
                                           className="relative h-[100px] border-b border-blue-50 group"
+                                          style={{ width: quarterDisplay.length <= 4 ? '100%' : `${quarterDisplay.length * 25}%`, minWidth: 'fit-content' }}
                                         >
                                           {/* Quarter dividers - Rolling View */}
                                           <div className="absolute inset-0 flex">
@@ -1595,13 +1723,17 @@ export default function Dashboard() {
                                               quarterDisplay.map((qItem) => (
                                                 <div
                                                   key={`${qItem.quarter}-${qItem.year}-team-div`}
-                                                  className="flex-1 border-r border-blue-100 last:border-r-0"
+                                                  className="border-r border-blue-100 last:border-r-0"
+                                                  style={{ 
+                                                    width: quarterDisplay.length <= 4 ? `${100 / quarterDisplay.length}%` : '25%',
+                                                    minWidth: '25%' 
+                                                  }}
                                                 />
                                               ))}
                                           </div>
 
                                           {/* Continuous feature bar spanning multiple quarters - Teams View */}
-                                          <div className="absolute inset-0 flex">
+                                          <div className="absolute inset-0 flex items-center">
                                             {(() => {
                                               const featureStart = new Date(
                                                 feature.startDate
@@ -1649,21 +1781,14 @@ export default function Dashboard() {
                                                 );
                                               }
 
-                                              // Calculate which quarters the feature spans
+                                              // Calculate which quarters the feature spans based on quarterlyConsumption data
                                               const spannedQuarters =
                                                 quarterDisplay.filter(
                                                   (qItem) => {
-                                                    const quarterDates =
-                                                      getQuarterDates(
-                                                        qItem.quarter,
-                                                        qItem.year
-                                                      );
-                                                    return (
-                                                      featureStart <=
-                                                        quarterDates.end &&
-                                                      featureEnd >=
-                                                        quarterDates.start
-                                                    );
+                                                    const quarterKey = qItem.quarterKey;
+                                                    const quarterData = feature.quarterlyConsumption?.[quarterKey];
+                                                    // Include quarter if it has planned data
+                                                    return quarterData && parseInt(quarterData.planned) > 0;
                                                   }
                                                 );
 
@@ -1711,32 +1836,8 @@ export default function Dashboard() {
                                                     100
                                                   : 0;
 
-                                              return quarterDisplay.map(
-                                                (qItem, index) => {
-                                                  if (
-                                                    index < firstSpannedIndex ||
-                                                    index > lastSpannedIndex
-                                                  ) {
-                                                    return (
-                                                      <div
-                                                        key={`${qItem.quarter}-${qItem.year}`}
-                                                        className="flex-1"
-                                                      />
-                                                    );
-                                                  }
-
-                                                  const isFirstQuarter =
-                                                    index === firstSpannedIndex;
-                                                  const isOnlyQuarter =
-                                                    firstSpannedIndex ===
-                                                    lastSpannedIndex;
-
-                                                  return (
-                                                    <div
-                                                      key={`${qItem.quarter}-${qItem.year}`}
-                                                      className="flex-1 relative flex items-center justify-center p-4"
-                                                    >
-                                                      {isFirstQuarter && (
+                                              // Render bar directly without quarter mapping
+                                              return (
                                                         <TooltipProvider>
                                                           <Tooltip>
                                                             <TooltipTrigger
@@ -1745,24 +1846,12 @@ export default function Dashboard() {
                                                               <div
                                                                 className="absolute h-full flex items-center justify-center"
                                                                 style={{
-                                                                  left: "16px",
-                                                                  right:
-                                                                    isOnlyQuarter
-                                                                      ? "16px"
-                                                                      : `${
-                                                                          -100 *
-                                                                          (lastSpannedIndex -
-                                                                            firstSpannedIndex)
-                                                                        }%`,
-                                                                  width:
-                                                                    isOnlyQuarter
-                                                                      ? "calc(100% - 32px)"
-                                                                      : `${
-                                                                          100 *
-                                                                          (lastSpannedIndex -
-                                                                            firstSpannedIndex +
-                                                                            1)
-                                                                        }%`,
+                                                                  left: quarterDisplay.length <= 4 
+                                                                    ? `calc(${(firstSpannedIndex / quarterDisplay.length) * 100}% + 1rem)`
+                                                                    : `calc(${firstSpannedIndex * 25}% + 1rem)`,
+                                                                  width: quarterDisplay.length <= 4
+                                                                    ? `calc(${((lastSpannedIndex - firstSpannedIndex + 1) / quarterDisplay.length) * 100}% - 2rem)`
+                                                                    : `calc(${(lastSpannedIndex - firstSpannedIndex + 1) * 25}% - 2rem)`,
                                                                 }}
                                                               >
                                                                 <div
@@ -1799,14 +1888,95 @@ export default function Dashboard() {
                                                                       }}
                                                                     />
                                                                   )}
-                                                                  <div className="absolute inset-0 flex items-center justify-center">
-                                                                    <span className="text-xs font-bold text-gray-800 drop-shadow-sm whitespace-nowrap">
-                                                                      {totalConsumed >
-                                                                      0
-                                                                        ? `${totalConsumed}/${totalPlanned}`
-                                                                        : totalPlanned}{" "}
-                                                                      SP
-                                                                    </span>
+                                                                  {/* Quarter-wise story points - simple layout */}
+                                                                  <div className="absolute inset-0 flex items-center justify-center gap-2 px-2">
+                                                                    {quarterDisplay.map(
+                                                                      (
+                                                                        qDisplayItem,
+                                                                        qIndex
+                                                                      ) => {
+                                                                        const qData =
+                                                                          feature
+                                                                            .quarterlyConsumption?.[
+                                                                            qDisplayItem
+                                                                              .quarterKey
+                                                                          ];
+                                                                        const qPlanned =
+                                                                          parseInt(
+                                                                            qData?.planned
+                                                                          ) ||
+                                                                          0;
+                                                                        const qConsumed =
+                                                                          parseInt(
+                                                                            qData?.consumed
+                                                                          ) ||
+                                                                          0;
+
+                                                                        if (
+                                                                          qPlanned ===
+                                                                          0
+                                                                        )
+                                                                          return null;
+
+                                                                        return (
+                                                                          <React.Fragment
+                                                                            key={
+                                                                              qDisplayItem.quarterKey
+                                                                            }
+                                                                          >
+                                                                            <span className="text-xs font-bold text-gray-800 drop-shadow-sm whitespace-nowrap px-2 py-1 bg-white bg-opacity-70 rounded">
+                                                                              {
+                                                                                qDisplayItem.quarter
+                                                                              }{" "}
+                                                                              -{" "}
+                                                                              {qConsumed >
+                                                                              0
+                                                                                ? `${qConsumed}/${qPlanned}`
+                                                                                : qPlanned}
+                                                                              SP
+                                                                            </span>
+                                                                            {qIndex <
+                                                                              quarterDisplay.length -
+                                                                                1 &&
+                                                                              qIndex <
+                                                                                quarterDisplay.filter(
+                                                                                  (
+                                                                                    q
+                                                                                  ) => {
+                                                                                    const nextQData =
+                                                                                      feature
+                                                                                        .quarterlyConsumption?.[
+                                                                                        q
+                                                                                          .quarterKey
+                                                                                      ];
+                                                                                    return (
+                                                                                      parseInt(
+                                                                                        nextQData?.planned
+                                                                                      ) >
+                                                                                      0
+                                                                                    );
+                                                                                  }
+                                                                                )
+                                                                                  .length -
+                                                                                  1 && (
+                                                                                <span className="text-gray-400 text-xs">
+                                                                                  |
+                                                                                </span>
+                                                                              )}
+                                                                          </React.Fragment>
+                                                                        );
+                                                                      }
+                                                                    )}
+                                                                  </div>
+
+                                                                  {/* Total story points at the bottom */}
+                                                                  <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-black bg-opacity-20 text-white text-xs font-bold py-1 rounded-b-lg">
+                                                                    Total:{" "}
+                                                                    {totalConsumed >
+                                                                    0
+                                                                      ? `${totalConsumed}/${totalPlanned}`
+                                                                      : totalPlanned}{" "}
+                                                                    SP
                                                                   </div>
                                                                 </div>
                                                               </div>
@@ -1856,10 +2026,6 @@ export default function Dashboard() {
                                                             </TooltipContent>
                                                           </Tooltip>
                                                         </TooltipProvider>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                }
                                               );
                                             })()}
                                           </div>
@@ -1957,6 +2123,238 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Recommendations Dialog */}
+        <Dialog
+          open={isRecommendationOpen}
+          onOpenChange={setIsRecommendationOpen}
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Lightbulb className="w-5 h-5 text-amber-600" />
+                <span>Project Recommendations</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Risk Assessment */}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <h3 className="text-lg font-semibold text-red-800">
+                    Risk Assessment
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-red-700 mb-2">
+                      High Priority Risks
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-red-600">
+                      <li>
+                        SAML configuration complexities may cause integration
+                        delays
+                      </li>
+                      <li>
+                        Jakarta EE migration involves high uncertainty (60%
+                        accuracy)
+                      </li>
+                      <li>
+                        Library incompatibility issues could impact timeline
+                      </li>
+                      <li>Security vulnerabilities in SSO implementation</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-red-700 mb-2">
+                      Medium Priority Risks
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-red-600">
+                      <li>API compatibility issues with Microsoft Teams</li>
+                      <li>
+                        Code refactoring complexity in Jakarta EE migration
+                      </li>
+                      <li>Performance degradation during migration</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Assumptions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-blue-800">
+                    Key Assumptions
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-blue-700 mb-2">
+                      Technical Assumptions
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-blue-600">
+                      <li>
+                        Existing SAML infrastructure is fully functional and
+                        documented
+                      </li>
+                      <li>
+                        Microsoft Teams API access and permissions are available
+                      </li>
+                      <li>
+                        Current team has sufficient Jakarta EE 10 expertise
+                      </li>
+                      <li>
+                        Database schemas are compatible with new library
+                        versions
+                      </li>
+                      <li>
+                        Development and testing environments support Jakarta EE
+                        10
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-blue-700 mb-2">
+                      Resource Assumptions
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-blue-600">
+                      <li>
+                        Team composition remains stable throughout project
+                        duration
+                      </li>
+                      <li>
+                        Required licenses and tools will be available on time
+                      </li>
+                      <li>
+                        External dependencies (Microsoft, third-party libraries)
+                        remain stable
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommendations */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Lightbulb className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-green-800">
+                    Strategic Recommendations
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-green-700 mb-2">
+                      Immediate Actions (Week 1-2)
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-green-600">
+                      <li>
+                        Conduct detailed technical assessment of existing SAML
+                        infrastructure
+                      </li>
+                      <li>
+                        Create proof-of-concept for Jakarta EE 10 migration
+                      </li>
+                      <li>
+                        Set up dedicated development environment for migration
+                        testing
+                      </li>
+                      <li>
+                        Schedule knowledge transfer sessions on Jakarta EE 10
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-green-700 mb-2">
+                      Risk Mitigation (Week 2-4)
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-green-600">
+                      <li>
+                        Implement phased migration approach with rollback
+                        capability
+                      </li>
+                      <li>
+                        Add 20% buffer time for complex integration challenges
+                      </li>
+                      <li>
+                        Schedule security review sessions for SSO implementation
+                      </li>
+                      <li>
+                        Create comprehensive test coverage before migration
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-green-700 mb-2">
+                      Quality Assurance
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-green-600">
+                      <li>Implement automated testing for both features</li>
+                      <li>
+                        Schedule regular code reviews with architecture team
+                      </li>
+                      <li>Plan performance testing at each major milestone</li>
+                      <li>Document all configuration changes and decisions</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Health Indicators */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <h3 className="text-lg font-semibold text-amber-800">
+                    Project Health Indicators
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium text-amber-700 mb-2">
+                      Current Status
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-amber-600">
+                          Overall Risk Level:
+                        </span>
+                        <span className="font-semibold text-red-600">High</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-600">
+                          Estimation Confidence:
+                        </span>
+                        <span className="font-semibold text-amber-600">
+                          67.5%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-600">
+                          Buffer Allocation:
+                        </span>
+                        <span className="font-semibold text-green-600">
+                          25%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-amber-700 mb-2">
+                      Success Factors
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-amber-600 text-sm">
+                      <li>Strong team expertise in core technologies</li>
+                      <li>Existing SAML infrastructure foundation</li>
+                      <li>Comprehensive testing strategy planned</li>
+                      <li>Dedicated architecture support available</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
