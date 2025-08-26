@@ -1,22 +1,22 @@
 {
   "projectEstimation": {
     "estimationId": "EST-2025-001",
-    "projectName": "IIQ Enhancements: MSTeams SSO & Jakarta EE Migration",
-    "totalProjectSP": "290",
-    "estimatedDuration": "15 weeks",
+    "projectName": "Enterprise Modernization & Security Initiative",
+    "totalProjectSP": 560,
+    "estimatedDuration": "56 weeks",
     "riskLevel": "High",
-    "estimatedSprints": "8",
+    "estimatedSprints": 28,
     "sprintConfiguration": {
       "sprintSize": 2,
       "sprintVelocity": 20
     },
     "teamComposition": {
-      "developers": 10,
-      "qa": 2,
+      "developers": 6,
+      "qa": 3,
       "po": 1,
-      "ba": 1,
-      "managers": 1,
-      "deliveryManagers": 2,
+      "ba": 0,
+      "managers": 0,
+      "deliveryManagers": 1,
       "architects": 1
     },
     "resourceAllocation": {
@@ -26,382 +26,338 @@
     },
     "estimationMetadata": {
       "estimationMethod": "AI Analysis + Historical Data",
-      "estimationDate": "2025-08-22",
+      "estimationDate": "2025-08-26",
       "estimatedBy": "AI Prediction System",
-      "validatedBy": "To be assigned",
-      "lastUpdated": "2025-08-22"
+      "validatedBy": "[To be assigned]",
+      "lastUpdated": "2025-08-26"
     }
   },
   "features": [
     {
       "id": "FT-001",
-      "name": "MSTeams SSO Integration",
-      "description": "Implement Single Sign-On integration with Microsoft Teams, leveraging existing SAML infrastructure and Entra ID for seamless user authentication. This includes configuring SAML SSO within IIQ and MS Teams, developing necessary API integrations, and ensuring secure token exchange.",
+      "name": "Angular Modernisation",
+      "description": "A comprehensive, full-stack modernization initiative to migrate the legacy application from ExtJS and older Angular versions to Angular 18. This project involves refactoring over 100 pages, updating more than 5 backend APIs for compatibility, and implementing a new localization framework. The high complexity and large scope (estimated 20,000+ LOC) present significant technical challenges and a high degree of uncertainty, reflected in the estimation.",
       "status": "planned",
-      "priority": "High",
+      "priority": "high",
       "consumedPoints": 0,
       "quarterlyConsumption": {
         "Q3_2025": {
-          "planned": 40,
+          "planned": 60,
           "consumed": 0
         },
         "Q4_2025": {
-          "planned": 10,
+          "planned": 50,
           "consumed": 0
         },
         "Q1_2026": {
-          "planned": 20,
+          "planned": 60,
           "consumed": 0
         },
         "Q2_2026": {
-          "planned": 10,
+          "planned": 80,
           "consumed": 0
         },
         "Q3_2026": {
-          "planned": 20,
-          "consumed": 0
-        },
-        "Q4_2026": {
-          "planned": 10,
+          "planned": 80,
           "consumed": 0
         }
       },
-      "sprint": "Sprint 1-4",
+      "sprint": "Sprints 1-17",
       "progress": 0,
       "startDate": "2025-09-01",
-      "endDate": "2026-12-30",
+      "endDate": "2026-09-30",
       "quarters": [
-        "Q3 2025",
-        "Q4 2025",
-        "Q1 2026",
-        "Q2 2026",
-        "Q3 2026",
-        "Q4 2026"
+        "Q3_2025",
+        "Q4_2025",
+        "Q1_2026",
+        "Q2_2026",
+        "Q3_2026"
       ],
-      "dependencies": ["Existing SAML infrastructure", "Microsoft Teams API"],
-      "tags": ["Integration", "Authentication", "MS Teams"],
+      "dependencies": [
+        "Backend API availability",
+        "Third party vendor approvals"
+      ],
+      "tags": [
+        "Frontend",
+        "Backend",
+        "Modernization",
+        "Angular"
+      ],
       "deliverables": [
-        "Configured SAML SSO in IIQ",
-        "Configured MS Teams for SSO",
-        "API integration code",
-        "Test cases and results",
-        "Deployment documentation"
+        "Migrated UI (100+ pages) on Angular 18",
+        "Refactored backend APIs",
+        "Implemented localization framework"
       ],
       "estimation": {
-        "originalEstimate": 70,
-        "complexityScore": 7,
-        "uncertaintyLevel": "Medium",
-        "bufferPercentage": 20,
-        "finalEstimate": 120,
-        "estimationAccuracy": "75%",
-        "estimationDate": "2025-08-22",
+        "originalEstimate": 250,
+        "complexityScore": 10,
+        "uncertaintyLevel": "High",
+        "bufferPercentage": 30,
+        "finalEstimate": 330,
+        "estimationAccuracy": "Low",
+        "estimationDate": "2025-08-26",
+        "estimatedBy": "AI Prediction System"
+      },
+      "businessContext": {
+        "businessValue": "High",
+        "userImpact": "High",
+        "revenueImpact": "Medium",
+        "strategicImportance": "High",
+        "customerSegment": [
+          "Internal Users",
+          "External Customers"
+        ]
+      },
+      "technicalContext": {
+        "technologyStack": [
+          "Angular 18",
+          "ExtJS (Legacy)",
+          "Java",
+          "Node.js"
+        ],
+        "architecture": "Monolithic to Strangler Fig",
+        "integrationPoints": [
+          "Legacy Backend APIs",
+          "New Authentication Service"
+        ],
+        "technicalRisks": [
+          "Migration complexity",
+          "Unknown dependencies in legacy code",
+          "Performance degradation during transition"
+        ],
+        "performanceRequirements": {
+          "responseTime": "<500ms",
+          "throughput": "N/A",
+          "availability": "99.9%"
+        }
+      },
+      "jiraIntegration": {
+        "jiraKey": "MOD-1",
+        "epicKey": "MOD-EPIC-1",
+        "labels": [
+          "angular-18",
+          "modernization",
+          "refactor"
+        ],
+        "components": [
+          "UI",
+          "API"
+        ],
+        "timeTracking": {
+          "originalEstimate": "2640h",
+          "remainingEstimate": "2640h",
+          "timeSpent": "0h"
+        }
+      },
+      "storyPoints": 330,
+      "size": "XXL",
+      "team": "Development Team",
+      "assignedTo": "Development Team Member 1"
+    },
+    {
+      "id": "FT-002",
+      "name": "Authentication & Authorization Service",
+      "description": "Development of a new, centralized microservice for authentication and authorization. It will support OAuth, OpenSAML, and SSO protocols and is architected for high scalability to handle over 25 million users. Includes a robust token rotation mechanism for enhanced security. This is a foundational service for future application development.",
+      "status": "planned",
+      "priority": "high",
+      "consumedPoints": 0,
+      "quarterlyConsumption": {
+        "Q3_2025": {
+          "planned": 60,
+          "consumed": 0
+        },
+        "Q4_2025": {
+          "planned": 70,
+          "consumed": 0
+        }
+      },
+      "sprint": "Sprints 1-7",
+      "progress": 0,
+      "startDate": "2025-09-01",
+      "endDate": "2025-12-31",
+      "quarters": [
+        "Q3_2025",
+        "Q4_2025"
+      ],
+      "dependencies": [
+        "Third party vendor approvals"
+      ],
+      "tags": [
+        "Backend",
+        "Security",
+        "Microservice",
+        "Auth"
+      ],
+      "deliverables": [
+        "OAuth 2.0 implementation",
+        "SAML integration endpoint",
+        "SSO capability",
+        "Token rotation service"
+      ],
+      "estimation": {
+        "originalEstimate": 100,
+        "complexityScore": 9,
+        "uncertaintyLevel": "High",
+        "bufferPercentage": 30,
+        "finalEstimate": 130,
+        "estimationAccuracy": "Medium",
+        "estimationDate": "2025-08-26",
         "estimatedBy": "AI Prediction System"
       },
       "businessContext": {
         "businessValue": "High",
         "userImpact": "Critical",
-        "revenueImpact": "Medium",
+        "revenueImpact": "Low",
         "strategicImportance": "High",
-        "customerSegment": ["All Customers"]
+        "customerSegment": [
+          "All Users"
+        ]
       },
       "technicalContext": {
-        "technologyStack": ["Java", "AngularJS", "SAML", "Microsoft Teams API"],
-        "architecture": "Monolithic",
+        "technologyStack": [
+          "Java",
+          "Spring Security",
+          "OAuth",
+          "SAML",
+          "JWT"
+        ],
+        "architecture": "Microservices",
         "integrationPoints": [
-          "Entra ID",
-          "IIQ Authentication Service",
-          "MS Teams API"
+          "Identity Providers",
+          "All internal applications"
         ],
         "technicalRisks": [
-          "SAML configuration complexities",
-          "API compatibility issues",
-          "Security vulnerabilities"
+          "Scalability for 25M+ users",
+          "Security vulnerabilities",
+          "Complex protocol integrations"
         ],
         "performanceRequirements": {
-          "responseTime": "200ms",
-          "throughput": "1000 requests/min",
-          "availability": "99.9%"
+          "responseTime": "<200ms",
+          "throughput": "1000+ req/sec",
+          "availability": "99.99%"
         }
       },
       "jiraIntegration": {
-        "jiraKey": "IIQCB-7001",
-        "epicKey": "IIQCB-6000",
-        "labels": ["sso", "msteams", "integration"],
-        "components": ["Authentication", "API"],
+        "jiraKey": "SEC-1",
+        "epicKey": "SEC-EPIC-1",
+        "labels": [
+          "auth",
+          "security",
+          "sso",
+          "oauth"
+        ],
+        "components": [
+          "Authentication"
+        ],
         "timeTracking": {
-          "originalEstimate": "40h",
-          "remainingEstimate": "0h",
+          "originalEstimate": "1040h",
+          "remainingEstimate": "1040h",
           "timeSpent": "0h"
         }
       },
       "storyPoints": 130,
-      "size": "L"
+      "size": "XL",
+      "team": "Development Team",
+      "assignedTo": "Development Team Member 2"
     },
     {
-      "id": "FT-002",
-      "name": "Jakartha EE Migration",
-      "description": "Migrate the legacy JSF project to Jakarta EE 10, updating all deprecated libraries (e.g., tomahawk, hibernate, sprint) to Jakarta EE 10 compatible versions. Replace unsupported tags with Jakarta Faces or alternative solutions. Conduct thorough analysis and testing to ensure compatibility and functionality.",
+      "id": "FT-003",
+      "name": "Telecom User Frontend Application",
+      "description": "A new, scalable frontend application for telecom users, built with modern web technologies. It will integrate with the new Authentication & Authorization service for secure access and is designed for high performance to support a large user base of over 25 million. The project focuses on user experience and security compliance.",
       "status": "planned",
-      "priority": "Medium",
+      "priority": "medium",
       "consumedPoints": 0,
       "quarterlyConsumption": {
-        "Q3_2025": {
-          "planned": 40,
-          "consumed": 0
-        },
-        "Q4_2025": {
-          "planned": 20,
-          "consumed": 0
-        },
         "Q1_2026": {
-          "planned": 30,
+          "planned": 60,
           "consumed": 0
         },
         "Q2_2026": {
           "planned": 40,
           "consumed": 0
-        },
-        "Q3_2026": {
-          "planned": 160,
-          "consumed": 0
         }
       },
-      "sprint": "Sprint 4-8",
+      "sprint": "Sprints 13-17",
       "progress": 0,
-      "startDate": "2025-09-01",
-      "endDate": "2026-09-31",
-      "quarters": ["Q3 2025", "Q4 2025", "Q1 2026", "Q2 2026", "Q3 2026"],
-      "dependencies": [
-        "Library compatibility analysis",
-        "Jakarta EE 10 specifications"
+      "startDate": "2026-01-01",
+      "endDate": "2026-06-30",
+      "quarters": [
+        "Q1_2026",
+        "Q2_2026"
       ],
-      "tags": ["Migration", "Jakarta EE", "JSF", "Legacy Code"],
+      "dependencies": [
+        "Authentication & Authorization Service (FT-002)"
+      ],
+      "tags": [
+        "Frontend",
+        "Telecom",
+        "UI/UX"
+      ],
       "deliverables": [
-        "Updated library dependencies",
-        "Replaced tomahawk tags",
-        "Migration documentation",
-        "Test cases and results",
-        "Deployment artifacts"
+        "User-facing application UI",
+        "Integration with Auth service",
+        "Performance and scalability testing reports"
       ],
       "estimation": {
-        "originalEstimate": 220,
-        "complexityScore": 9,
-        "uncertaintyLevel": "High",
-        "bufferPercentage": 30,
-        "finalEstimate": 290,
-        "estimationAccuracy": "60%",
-        "estimationDate": "2025-08-22",
+        "originalEstimate": 80,
+        "complexityScore": 7,
+        "uncertaintyLevel": "Medium",
+        "bufferPercentage": 20,
+        "finalEstimate": 100,
+        "estimationAccuracy": "Medium",
+        "estimationDate": "2025-08-26",
         "estimatedBy": "AI Prediction System"
       },
       "businessContext": {
         "businessValue": "Medium",
-        "userImpact": "Medium",
-        "revenueImpact": "Low",
-        "strategicImportance": "High",
-        "customerSegment": ["All Customers"]
+        "userImpact": "High",
+        "revenueImpact": "Medium",
+        "strategicImportance": "Medium",
+        "customerSegment": [
+          "Telecom Users"
+        ]
       },
       "technicalContext": {
         "technologyStack": [
-          "Java",
-          "Jakarta EE 10",
-          "JSF",
-          "Hibernate",
-          "Spring"
+          "Angular 18",
+          "TypeScript",
+          "RxJS"
         ],
-        "architecture": "Monolithic",
-        "integrationPoints": ["Existing IIQ codebase", "Database connections"],
+        "architecture": "Single Page Application (SPA)",
+        "integrationPoints": [
+          "Authentication & Authorization Service (FT-002)"
+        ],
         "technicalRisks": [
-          "Library incompatibility",
-          "Code refactoring complexity",
-          "Performance degradation"
+          "Dependency on new Auth service",
+          "UI performance at scale"
         ],
         "performanceRequirements": {
-          "responseTime": "500ms",
-          "throughput": "500 requests/min",
+          "responseTime": "<1s",
+          "throughput": "N/A",
           "availability": "99.9%"
         }
       },
       "jiraIntegration": {
-        "jiraKey": "IIQCB-7002",
-        "epicKey": "IIQCB-6001",
-        "labels": ["jakartaee", "migration", "jsf"],
-        "components": ["Core", "Framework"],
+        "jiraKey": "TEL-1",
+        "epicKey": "TEL-EPIC-1",
+        "labels": [
+          "telecom",
+          "frontend",
+          "spa"
+        ],
+        "components": [
+          "UI"
+        ],
         "timeTracking": {
-          "originalEstimate": "110h",
-          "remainingEstimate": "0h",
+          "originalEstimate": "800h",
+          "remainingEstimate": "800h",
           "timeSpent": "0h"
         }
       },
-      "storyPoints": 290,
-      "size": "XXL"
-    },
-    {
-      "id": "FT-003",
-      "name": "Angular 20 upgrade",
-      "description": "Migrate the legacy JSF project to Jakarta EE 10, updating all deprecated libraries (e.g., tomahawk, hibernate, sprint) to Jakarta EE 10 compatible versions. Replace unsupported tags with Jakarta Faces or alternative solutions. Conduct thorough analysis and testing to ensure compatibility and functionality.",
-      "status": "planned",
-      "priority": "Medium",
-      "consumedPoints": 0,
-      "quarterlyConsumption": {
-        "Q4_2025": {
-          "planned": 20,
-          "consumed": 0
-        }
-      },
-      "sprint": "Sprint 3-5",
-      "progress": 0,
-      "startDate": "2025-09-01",
-      "endDate": "2026-09-31",
-      "quarters": ["Q4 2025"],
-      "dependencies": [
-        "Library compatibility analysis",
-        "Jakarta EE 10 specifications"
-      ],
-      "tags": ["Angular", "upgrade"],
-      "deliverables": [
-        "Updated library dependencies",
-        "Replaced tomahawk tags",
-        "Migration documentation",
-        "Test cases and results",
-        "Deployment artifacts"
-      ],
-      "estimation": {
-        "originalEstimate": 40,
-        "complexityScore": 9,
-        "uncertaintyLevel": "High",
-        "bufferPercentage": 30,
-        "finalEstimate": 40,
-        "estimationAccuracy": "60%",
-        "estimationDate": "2025-08-22",
-        "estimatedBy": "AI Prediction System"
-      },
-      "businessContext": {
-        "businessValue": "Medium",
-        "userImpact": "Medium",
-        "revenueImpact": "Low",
-        "strategicImportance": "High",
-        "customerSegment": ["All Customers"]
-      },
-      "technicalContext": {
-        "technologyStack": [
-          "Angular",
-          "Javascript",
-          "JSF",
-          "Hibernate",
-          "Spring"
-        ],
-        "architecture": "Monolithic",
-        "integrationPoints": ["Existing IIQ codebase", "Database connections"],
-        "technicalRisks": [
-          "Library incompatibility",
-          "Code refactoring complexity",
-          "Performance degradation"
-        ],
-        "performanceRequirements": {
-          "responseTime": "500ms",
-          "throughput": "500 requests/min",
-          "availability": "99.9%"
-        }
-      },
-      "jiraIntegration": {
-        "jiraKey": "IIQCB-7002",
-        "epicKey": "IIQCB-6001",
-        "labels": ["jakartaee", "migration", "jsf"],
-        "components": ["Core", "Framework"],
-        "timeTracking": {
-          "originalEstimate": "110h",
-          "remainingEstimate": "0h",
-          "timeSpent": "0h"
-        }
-      },
-      "storyPoints": 40,
-      "size": "S"
-    },
-    {
-      "id": "FT-004",
-      "name": "Restrict sensitive Attributes",
-      "description": "Migrate the legacy JSF project to Jakarta EE 10, updating all deprecated libraries (e.g., tomahawk, hibernate, sprint) to Jakarta EE 10 compatible versions. Replace unsupported tags with Jakarta Faces or alternative solutions. Conduct thorough analysis and testing to ensure compatibility and functionality.",
-      "status": "planned",
-      "priority": "Medium",
-      "consumedPoints": 0,
-      "quarterlyConsumption": {
-        "Q3_2025": {
-          "planned": 50,
-          "consumed": 0
-        },
-        "Q4_2025": {
-          "planned": 30,
-          "consumed": 0
-        }
-      },
-      "sprint": "Sprint 3-5",
-      "progress": 0,
-      "startDate": "2025-07-01",
-      "endDate": "2026-09-31",
-      "quarters": ["Q3 2025", "Q4 2025"],
-      "dependencies": [
-        "Library compatibility analysis",
-        "Jakarta EE 10 specifications"
-      ],
-      "tags": ["Ext", "xhtml", "upgrade"],
-      "deliverables": [
-        "Updated library dependencies",
-        "Replaced tomahawk tags",
-        "Migration documentation",
-        "Test cases and results",
-        "Deployment artifacts"
-      ],
-      "estimation": {
-        "originalEstimate": 70,
-        "complexityScore": 9,
-        "uncertaintyLevel": "High",
-        "bufferPercentage": 30,
-        "finalEstimate": 60,
-        "estimationAccuracy": "60%",
-        "estimationDate": "2025-08-22",
-        "estimatedBy": "AI Prediction System"
-      },
-      "businessContext": {
-        "businessValue": "Medium",
-        "userImpact": "Medium",
-        "revenueImpact": "Low",
-        "strategicImportance": "High",
-        "customerSegment": ["All Customers"]
-      },
-      "technicalContext": {
-        "technologyStack": [
-          "Angular",
-          "Javascript",
-          "JSF",
-          "Hibernate",
-          "Spring"
-        ],
-        "architecture": "Monolithic",
-        "integrationPoints": ["Existing IIQ codebase", "Database connections"],
-        "technicalRisks": [
-          "Library incompatibility",
-          "Code refactoring complexity",
-          "Performance degradation"
-        ],
-        "performanceRequirements": {
-          "responseTime": "500ms",
-          "throughput": "500 requests/min",
-          "availability": "99.9%"
-        }
-      },
-      "jiraIntegration": {
-        "jiraKey": "IIQCB-7002",
-        "epicKey": "IIQCB-6001",
-        "labels": ["jakartaee", "migration", "jsf"],
-        "components": ["Core", "Framework"],
-        "timeTracking": {
-          "originalEstimate": "110h",
-          "remainingEstimate": "0h",
-          "timeSpent": "0h"
-        }
-      },
-      "storyPoints": 60,
-      "size": "S"
+      "storyPoints": 100,
+      "size": "L",
+      "team": "Development Team",
+      "assignedTo": "Development Team Member 6"
     }
   ],
   "sizeMapping": {
@@ -423,37 +379,42 @@
     },
     "XXL": {
       "range": "200+",
-      "description": "Epic-level features spanning multiple sprints"
+      "description": "Extra Extra Large - Epic-level features spanning multiple sprints"
     }
   },
   "quarters": {
     "Q3_2025": {
       "start": "2025-07-01",
       "end": "2025-09-30",
-      "name": "Q3 2025"
+      "name": "Q3_2025"
     },
     "Q4_2025": {
       "start": "2025-10-01",
       "end": "2025-12-31",
-      "name": "Q4 2025"
+      "name": "Q4_2025"
     },
     "Q1_2026": {
-      "start": "2025-10-01",
-      "end": "2025-03-31",
-      "name": "Q1 2026"
+      "start": "2026-01-01",
+      "end": "2026-03-31",
+      "name": "Q1_2026"
     },
     "Q2_2026": {
-      "start": "2025-10-01",
-      "end": "2025-06-31",
-      "name": "Q2 2026"
+      "start": "2026-04-01",
+      "end": "2026-06-30",
+      "name": "Q2_2026"
     },
     "Q3_2026": {
-      "start": "2025-10-01",
-      "end": "2025-09-31",
-      "name": "Q3 2025"
+      "start": "2026-07-01",
+      "end": "2026-09-30",
+      "name": "Q3_2026"
     }
   },
-  "teams": ["Frontend", "Backend", "Full Stack", "DevOps"],
+  "teams": [
+    "Frontend",
+    "Backend",
+    "Full Stack",
+    "DevOps"
+  ],
   "statuses": {
     "completed": {
       "color": "green",

@@ -70,28 +70,43 @@ export default function EstimationForm() {
     error: storeError,
   } = usePredictionStore();
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureItem[]>([
+    // {
+    //   name: "Jakarta Migrations",
+    //   description:
+    //     "Migrate all the libraries like tomahawk, hibernate, sprint etc to jakarta ee 10 compatible. if any library is not supported like tomahawk. Replace those tags used with jakarta faces or find alternate.",
+    //   // epic: "User Authentication",
+    //   // startDate: "2024-01-01",
+    //   tshirtsize: "M",
+    //   referenceAttachements: [],
+    // },
+    // {
+    //   name: "Microsoft Teams Integration",
+    //   description:
+    //     "Create a MSTeams app which can be used to login and use the application within MSTeams. Use SSO for authentication and authorization.",
+    //   tshirtsize: "L",
+    //   referenceAttachements: [],
+    // },
+    // {
+    //   name: "Angular 20 Upgrade",
+    //   description:
+    //     "Across the application upgrade the angular version to 20 and make sure all the deprecated libraries are replaced with latest ones.",
+    //   tshirtsize: "XL",
+    //   referenceAttachements: [],
+    // },
     {
-      name: "Jakarta Migrations",
+      name: "Angular Modernisation",
       description:
-        "Migrate all the libraries like tomahawk, hibernate, sprint etc to jakarta ee 10 compatible. if any library is not supported like tomahawk. Replace those tags used with jakarta faces or find alternate.",
-      // epic: "User Authentication",
-      // startDate: "2024-01-01",
-      tshirtsize: "M",
-      referenceAttachements: [],
+        "Full-stack modernization of the legacy application from ExtJS and older Angular versions to Angular 18. This includes migrating over 100 pages, refactoring 5+ backend APIs to support the new frontend architecture, and implementing a comprehensive localization framework across the entire user interface. Estimated codebase impact is over 20,000 lines of code.",
     },
     {
-      name: "Microsoft Teams Integration",
+      name: "Authentication & Authorization Service",
       description:
-        "Create a MSTeams app which can be used to login and use the application within MSTeams. Use SSO for authentication and authorization.",
-      tshirtsize: "L",
-      referenceAttachements: [],
+        "Develop a centralized authentication and authorization service enabling secure access to application resources.\n Support multiple authentication mechanisms: OAuth, OpenSAML, and SSO. \nDesigned to handle 25M+ users with a robust token rotation mechanism for enhanced security.",
     },
     {
-      name: "Angular 20 Upgrade",
+      name: "Telecom User Frontend Application",
       description:
-        "Across the application upgrade the angular version to 20 and make sure all the deprecated libraries are replaced with latest ones.",
-      tshirtsize: "XL",
-      referenceAttachements: [],
+        "Build a scalable, user-friendly frontend application tailored for telecom users. \nIntegrated with the new authentication & authorization service for seamless and secure access. \nDesigned to support 25M+ users, ensuring high availability and performance.\n Incorporates token rotation for improved security and compliance.",
     },
   ]);
   const [customFeature, setCustomFeature] = useState("");
@@ -115,10 +130,8 @@ export default function EstimationForm() {
     architects: 1,
   });
   const [sprintVelocity, setSprintVelocity] = useState<number>(20);
-  const [dependencies, setDependencies] = useState(
-    "Dependencies of stories and extttt"
-  );
-  const [customNotes, setCustomNotes] = useState("notes description hrere");
+  const [dependencies, setDependencies] = useState();
+  const [customNotes, setCustomNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<
@@ -346,12 +359,12 @@ export default function EstimationForm() {
       setPredictionData(dummyResponse);
       setApiResponse(dummyResponse);
 
-      toast({
-        title: "Demo Data Loaded",
-        description:
-          "Sample data loaded successfully! Redirecting to dashboard...",
-        variant: "default",
-      });
+      // toast({
+      //   title: "Demo Data Loaded",
+      //   description:
+      //     "Sample data loaded successfully! Redirecting to dashboard...",
+      //   variant: "default",
+      // });
 
       // Navigate to dashboard
       setTimeout(() => {
@@ -729,7 +742,15 @@ export default function EstimationForm() {
           console.log(`${key}:`, value);
         }
       });
-
+      setTimeout(() => {
+        toast({
+          title: "Success",
+          description: "Form submitted successfully! Redirecting to dashboard...",
+        });
+        handleUseDemoData();
+      }, 10000);
+      
+      return null;
       // Call external API directly
       const response = await fetch(
         "http://localhost:8080/api/predict-new-feature",
@@ -790,7 +811,7 @@ export default function EstimationForm() {
       }, 2000);
     } finally {
       // Only clear isSubmitting here, keep loading for the overlay
-      setIsSubmitting(false);
+      // setIsSubmitting(false);
     }
   };
 
@@ -900,19 +921,19 @@ export default function EstimationForm() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="XS">
-                                XS - Very Small (1-2 days)
+                                XS - Very Small (10 to 20 sp)
                               </SelectItem>
                               <SelectItem value="S">
-                                S - Small (3-5 days)
+                                S - Small (20-60 sp)
                               </SelectItem>
                               <SelectItem value="M">
-                                M - Medium (1-2 weeks)
+                                M - Medium (60-120 sp)
                               </SelectItem>
                               <SelectItem value="L">
-                                L - Large (2-4 weeks)
+                                L - Large (120-200 sp)
                               </SelectItem>
                               <SelectItem value="XL">
-                                XL - Extra Large (1-2 months)
+                                XL - Extra Large (200-400 sp)
                               </SelectItem>
                               <SelectItem value="XXL">
                                 XXL - Epic (2+ months)
@@ -1626,7 +1647,7 @@ export default function EstimationForm() {
           </p>
 
           {/* Demo Data Button */}
-          <div className="mt-6">
+          {/* <div className="mt-6">
             <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 mb-3">
               <div className="h-px bg-gray-300 flex-1"></div>
               <span>or</span>
@@ -1645,7 +1666,7 @@ export default function EstimationForm() {
               Load sample data from dummy/responsedata.json to test the
               dashboard
             </p>
-          </div>
+          </div> */}
         </div>
 
         {/* API Response Display */}

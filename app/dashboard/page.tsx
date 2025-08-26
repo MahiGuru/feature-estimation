@@ -2229,6 +2229,7 @@ export default function Dashboard() {
                     Risk Assessment
                   </h3>
                 </div>
+
                 <div className="space-y-3">
                   <div>
                     <h4 className="font-medium text-red-700 mb-2">
@@ -2236,17 +2237,16 @@ export default function Dashboard() {
                     </h4>
                     <ul className="list-disc list-inside space-y-1 text-red-600">
                       <li>
-                        SAML configuration complexities may cause integration
-                        delays
+                        Critical dependencies not mapped in early planning.
                       </li>
                       <li>
-                        Jakarta EE migration involves high uncertainty (60%
-                        accuracy)
+                        Resource bottlenecks in niche skill areas.
+
                       </li>
                       <li>
-                        Library incompatibility issues could impact timeline
+                          Over-aggressive timelines leading to scope creep.
+
                       </li>
-                      <li>Security vulnerabilities in SSO implementation</li>
                     </ul>
                   </div>
                   <div>
@@ -2254,11 +2254,11 @@ export default function Dashboard() {
                       Medium Priority Risks
                     </h4>
                     <ul className="list-disc list-inside space-y-1 text-red-600">
-                      <li>API compatibility issues with Microsoft Teams</li>
+                      <li>Inconsistent document quality (HLD/LLD gaps).</li>
                       <li>
-                        Code refactoring complexity in Jakarta EE migration
+                        Cross-team coordination delays.
                       </li>
-                      <li>Performance degradation during migration</li>
+                      <li>Underestimation of testing effort.</li>
                     </ul>
                   </div>
                 </div>
@@ -2390,7 +2390,7 @@ export default function Dashboard() {
                 <div className="flex items-center space-x-2 mb-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600" />
                   <h3 className="text-lg font-semibold text-amber-800">
-                    Project Health Indicators
+                    Project Health 
                   </h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
