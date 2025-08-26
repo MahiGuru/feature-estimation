@@ -130,7 +130,7 @@ export default function EstimationForm() {
     architects: 1,
   });
   const [sprintVelocity, setSprintVelocity] = useState<number>(20);
-  const [dependencies, setDependencies] = useState();
+  const [dependencies, setDependencies] = useState<string>("");
   const [customNotes, setCustomNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
