@@ -1141,23 +1141,35 @@ export default function Dashboard() {
                                           const firstSpannedIndex =
                                             quarterDisplay.findIndex(
                                               (q) =>
-                                                q.quarter ===
-                                                  spannedQuarters[0].quarter &&
-                                                q.year ===
-                                                  spannedQuarters[0].year
+                                                q.quarterKey === spannedQuarters[0].quarterKey
                                             );
                                           const lastSpannedIndex =
                                             quarterDisplay.findIndex(
                                               (q) =>
-                                                q.quarter ===
-                                                  spannedQuarters[
-                                                    spannedQuarters.length - 1
-                                                  ].quarter &&
-                                                q.year ===
-                                                  spannedQuarters[
-                                                    spannedQuarters.length - 1
-                                                  ].year
+                                                q.quarterKey === spannedQuarters[spannedQuarters.length - 1].quarterKey
                                             );
+
+
+
+                                          // More robust index calculation - ensure we get valid indices
+                                          let safeFirstIndex = 0;
+                                          let safeLastIndex = 0;
+
+                                          if (spannedQuarters.length > 0) {
+                                            // Find the actual indices more carefully
+                                            for (let i = 0; i < quarterDisplay.length; i++) {
+                                              if (quarterDisplay[i].quarterKey === spannedQuarters[0].quarterKey) {
+                                                safeFirstIndex = i;
+                                                break;
+                                              }
+                                            }
+                                            for (let i = 0; i < quarterDisplay.length; i++) {
+                                              if (quarterDisplay[i].quarterKey === spannedQuarters[spannedQuarters.length - 1].quarterKey) {
+                                                safeLastIndex = i;
+                                                break;
+                                              }
+                                            }
+                                          }
 
                                           const consumedPercentage =
                                             totalPlanned > 0
@@ -1252,38 +1264,21 @@ export default function Dashboard() {
                                                 <TooltipProvider>
                                                   <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                      <div className="absolute inset-0 flex items-center">
-                                                        <div
-                                                          className="h-8 flex items-center justify-center"
-                                                          style={{
-                                                            left:
-                                                              quarterDisplay.length <=
-                                                              4
-                                                                ? `calc(${
-                                                                    (firstSpannedIndex /
-                                                                      quarterDisplay.length) *
-                                                                    100
-                                                                  }% + 1rem)`
-                                                                : `calc(${
-                                                                    firstSpannedIndex *
-                                                                    25
-                                                                  }% + 1rem)`,
-                                                            width:
-                                                              quarterDisplay.length <=
-                                                              4
-                                                                ? `calc(${
-                                                                    ((lastSpannedIndex -
-                                                                      firstSpannedIndex +
-                                                                      1) /
-                                                                      quarterDisplay.length) *
-                                                                    100
-                                                                  }% - 2rem)`
-                                                                : `calc(${
-                                                                    (lastSpannedIndex -
-                                                                      firstSpannedIndex +
-                                                                      1) *
-                                                                    25
-                                                                  }% - 2rem)`,
+                                                      <div 
+                                                        className="absolute h-8 flex items-center justify-center"
+                                                        style={{
+                                                          top: "50%",
+                                                          transform: "translateY(-50%)",
+                                                            left: quarterDisplay.length <= 4
+                                                              ? `calc(${
+                                                                  (safeFirstIndex / quarterDisplay.length) * 100
+                                                                }% + 0.5rem)`
+                                                              : `calc(${safeFirstIndex * 25}% + 0.5rem)`,
+                                                            width: quarterDisplay.length <= 4
+                                                              ? `calc(${
+                                                                  ((safeLastIndex - safeFirstIndex + 1) / quarterDisplay.length) * 100
+                                                                }% - 1rem)`
+                                                              : `calc(${(safeLastIndex - safeFirstIndex + 1) * 25}% - 1rem)`,
                                                           }}
                                                         >
                                                           {/* Simple bar showing total SP */}
@@ -1310,7 +1305,6 @@ export default function Dashboard() {
                                                             </div>
                                                           </div>
                                                         </div>
-                                                      </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
                                                       <div className="text-sm">
@@ -1906,29 +1900,25 @@ export default function Dashboard() {
                                                 );
                                               }
 
-                                              const firstSpannedIndex =
-                                                quarterDisplay.findIndex(
-                                                  (q) =>
-                                                    q.quarter ===
-                                                      spannedQuarters[0]
-                                                        .quarter &&
-                                                    q.year ===
-                                                      spannedQuarters[0].year
-                                                );
-                                              const lastSpannedIndex =
-                                                quarterDisplay.findIndex(
-                                                  (q) =>
-                                                    q.quarter ===
-                                                      spannedQuarters[
-                                                        spannedQuarters.length -
-                                                          1
-                                                      ].quarter &&
-                                                    q.year ===
-                                                      spannedQuarters[
-                                                        spannedQuarters.length -
-                                                          1
-                                                      ].year
-                                                );
+                                              // More robust index calculation - ensure we get valid indices
+                                              let safeFirstIndex = 0;
+                                              let safeLastIndex = 0;
+
+                                              if (spannedQuarters.length > 0) {
+                                                // Find the actual indices more carefully
+                                                for (let i = 0; i < quarterDisplay.length; i++) {
+                                                  if (quarterDisplay[i].quarterKey === spannedQuarters[0].quarterKey) {
+                                                    safeFirstIndex = i;
+                                                    break;
+                                                  }
+                                                }
+                                                for (let i = 0; i < quarterDisplay.length; i++) {
+                                                  if (quarterDisplay[i].quarterKey === spannedQuarters[spannedQuarters.length - 1].quarterKey) {
+                                                    safeLastIndex = i;
+                                                    break;
+                                                  }
+                                                }
+                                              }
 
                                               const consumedPercentage =
                                                 totalPlanned > 0
@@ -2028,38 +2018,21 @@ export default function Dashboard() {
                                                     <TooltipProvider>
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                          <div className="absolute inset-0 flex items-center">
-                                                            <div
-                                                              className="h-8 flex items-center justify-center"
-                                                              style={{
-                                                                left:
-                                                                  quarterDisplay.length <=
-                                                                  4
-                                                                    ? `calc(${
-                                                                        (firstSpannedIndex /
-                                                                          quarterDisplay.length) *
-                                                                        100
-                                                                      }% + 1rem)`
-                                                                    : `calc(${
-                                                                        firstSpannedIndex *
-                                                                        25
-                                                                      }% + 1rem)`,
-                                                                width:
-                                                                  quarterDisplay.length <=
-                                                                  4
-                                                                    ? `calc(${
-                                                                        ((lastSpannedIndex -
-                                                                          firstSpannedIndex +
-                                                                          1) /
-                                                                          quarterDisplay.length) *
-                                                                        100
-                                                                      }% - 2rem)`
-                                                                    : `calc(${
-                                                                        (lastSpannedIndex -
-                                                                          firstSpannedIndex +
-                                                                          1) *
-                                                                        25
-                                                                      }% - 2rem)`,
+                                                          <div 
+                                                            className="absolute h-8 flex items-center justify-center"
+                                                            style={{
+                                                              top: "50%",
+                                                              transform: "translateY(-50%)",
+                                                                left: quarterDisplay.length <= 4
+                                                                  ? `calc(${
+                                                                      (safeFirstIndex / quarterDisplay.length) * 100
+                                                                    }% + 0.5rem)`
+                                                                  : `calc(${safeFirstIndex * 25}% + 0.5rem)`,
+                                                                width: quarterDisplay.length <= 4
+                                                                  ? `calc(${
+                                                                      ((safeLastIndex - safeFirstIndex + 1) / quarterDisplay.length) * 100
+                                                                    }% - 1rem)`
+                                                                  : `calc(${(safeLastIndex - safeFirstIndex + 1) * 25}% - 1rem)`,
                                                               }}
                                                             >
                                                               <div
@@ -2086,7 +2059,6 @@ export default function Dashboard() {
                                                                 </div>
                                                               </div>
                                                             </div>
-                                                          </div>
                                                         </TooltipTrigger>
                                                         <TooltipContent>
                                                           <div className="text-sm">
