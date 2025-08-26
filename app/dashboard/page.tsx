@@ -1259,12 +1259,13 @@ export default function Dashboard() {
                                                 </div>
                                               </div>
 
-                                              {/* Bottom half - Main planned bar centered */}
+                                              {/* Bottom half - Main planned bar centered - only show if more than one quarter */}
                                               <div className="flex-1 relative">
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <div 
+                                                {spannedQuarters.length > 1 ? (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <div 
                                                         className="absolute h-8 flex items-center justify-center"
                                                         style={{
                                                           top: "50%",
@@ -1275,10 +1276,10 @@ export default function Dashboard() {
                                                                 }% + 0.5rem)`
                                                               : `calc(${safeFirstIndex * 25}% + 0.5rem)`,
                                                             width: quarterDisplay.length <= 4
-                                                              ? `calc(${
+                                                              ? `calc(max(${
                                                                   ((safeLastIndex - safeFirstIndex + 1) / quarterDisplay.length) * 100
-                                                                }% - 1rem)`
-                                                              : `calc(${(safeLastIndex - safeFirstIndex + 1) * 25}% - 1rem)`,
+                                                                }% - 1rem, 3rem))`
+                                                              : `calc(max(${(safeLastIndex - safeFirstIndex + 1) * 25}% - 1rem, 3rem))`,
                                                           }}
                                                         >
                                                           {/* Simple bar showing total SP */}
@@ -1390,6 +1391,7 @@ export default function Dashboard() {
                                                     </TooltipContent>
                                                   </Tooltip>
                                                 </TooltipProvider>
+                                              ) : null}
                                               </div>
                                             </div>
                                           );
@@ -2013,12 +2015,13 @@ export default function Dashboard() {
                                                     </div>
                                                   </div>
 
-                                                  {/* Bottom half - Main planned bar centered */}
+                                                  {/* Bottom half - Main planned bar centered - only show if more than one quarter */}
                                                   <div className="flex-1 relative">
-                                                    <TooltipProvider>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <div 
+                                                    {spannedQuarters.length > 1 ? (
+                                                      <TooltipProvider>
+                                                        <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                            <div 
                                                             className="absolute h-8 flex items-center justify-center"
                                                             style={{
                                                               top: "50%",
@@ -2029,10 +2032,10 @@ export default function Dashboard() {
                                                                     }% + 0.5rem)`
                                                                   : `calc(${safeFirstIndex * 25}% + 0.5rem)`,
                                                                 width: quarterDisplay.length <= 4
-                                                                  ? `calc(${
+                                                                  ? `calc(max(${
                                                                       ((safeLastIndex - safeFirstIndex + 1) / quarterDisplay.length) * 100
-                                                                    }% - 1rem)`
-                                                                  : `calc(${(safeLastIndex - safeFirstIndex + 1) * 25}% - 1rem)`,
+                                                                    }% - 1rem, 3rem))`
+                                                                  : `calc(max(${(safeLastIndex - safeFirstIndex + 1) * 25}% - 1rem, 3rem))`,
                                                               }}
                                                             >
                                                               <div
@@ -2104,6 +2107,7 @@ export default function Dashboard() {
                                                         </TooltipContent>
                                                       </Tooltip>
                                                     </TooltipProvider>
+                                                  ) : null}
                                                   </div>
                                                 </div>
                                               );
