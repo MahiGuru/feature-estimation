@@ -742,15 +742,7 @@ export default function EstimationForm() {
           console.log(`${key}:`, value);
         }
       });
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "Form submitted successfully! Redirecting to dashboard...",
-        });
-        handleUseDemoData();
-      }, 10000);
       
-      return null;
       // Call external API directly
       const response = await fetch(
         "http://localhost:8080/api/predict-new-feature",
