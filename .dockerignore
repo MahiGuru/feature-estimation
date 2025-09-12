@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+Dockerfile
+.dockerignore
+.git
+.github
+*.md
+*.log
+.bolt
+backup-json-files

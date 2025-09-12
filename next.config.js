@@ -2,15 +2,14 @@
 const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig = {
-  basePath: isProd ? "/feature-estimation" : "",
-  output: 'export',
-  trailingSlash: true,
+  basePath: '',
+  trailingSlash: false,
   
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
-  assetPrefix: isProd ? "/feature-estimation/" : "",
+  assetPrefix: '',
 
   webpack: (config, { isServer, dev }) => {
     // Enhanced tree-shaking optimization (only in production)
