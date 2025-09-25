@@ -742,10 +742,11 @@ export default function EstimationForm() {
           console.log(`${key}:`, value);
         }
       });
-      
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
+      console.log("API Base URL:", apiBaseUrl);
       // Call external API directly
       const response = await fetch(
-        "http://localhost:8080/api/predict-new-feature",
+        `${apiBaseUrl}/api/predict-new-feature`,
         {
           method: "POST",
           body: formData, // No Content-Type header needed for FormData
@@ -782,28 +783,28 @@ export default function EstimationForm() {
       console.warn("API not available, using dummy data as fallback");
 
       // Create a deep copy of the imported data to avoid any caching issues
-      const dummyResponse = JSON.parse(JSON.stringify(dummyResponseImport));
+      // const dummyResponse = JSON.parse(JSON.stringify(dummyResponseImport));
 
-      // Store dummy data in Zustand store
-      setPredictionData(dummyResponse);
-      setApiResponse(dummyResponse);
+      // // Store dummy data in Zustand store
+      // setPredictionData(dummyResponse);
+      // setApiResponse(dummyResponse);
 
-      toast({
-        title: "Demo Mode Active",
-        description:
-          "API unavailable - showing demo data. Form submitted successfully! Redirecting to dashboard...",
-        variant: "default",
-      });
+      // toast({
+      //   title: "Demo Mode Active",
+      //   description:
+      //     "API unavailable - showing demo data. Form submitted successfully! Redirecting to dashboard...",
+      //   variant: "default",
+      // });
 
       // Navigate to dashboard after a short delay to show completion
       setTimeout(() => {
         setLoading(false);
         setIsSubmitting(false);
-        router.push("/dashboard");
+        // router.push("/dashboard");
       }, 2000);
     } finally {
       // Only clear isSubmitting here, keep loading for the overlay
-      // setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 

@@ -1,0 +1,14 @@
+FROM mcr.microsoft.com/windows/node:20.11.1-windowsservercore-ltsc2022
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY . .
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
