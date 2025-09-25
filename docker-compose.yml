@@ -1,0 +1,28 @@
+services:
+  estiplannerdb:
+    container_name: featurepredictiondb
+    ports:
+      - 55432:5432
+    image: postgres:16
+    environment:
+      POSTGRES_DB: feature_prediction_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+  estiplanner:
+    image: "manideepkoppunoori/feature-prediction-system:latest"
+    container_name: estiplanner
+    ports:
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+  estiplanner-fe:
+    image: "mahi6535/feature-estimations:1.0.5"
+    environment:
+        NEXT_PUBLIC_API_URL: http://54.173.137.22:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - estiplanner
+  
